@@ -1,0 +1,8 @@
+*.swp
+bootcd/boot/kernel/kernel
+*.iso
+*.img
+*.a
+*.so
+kernel
+obj/

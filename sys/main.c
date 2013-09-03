@@ -1,8 +1,20 @@
 #include <defs.h>
 
+#include <printf.h>
+
 void start(void* modulep, void* physbase, void* physfree)
 {
+	int rval = 0;
 	// kernel starts here
+	rval = init_console();
+	if (rval != 0) {
+		/* FIXME:
+		 * put error handler here
+		 */
+	}
+
+	while (1) /* We are not expected to return */
+		;
 }
 
 #define INITIAL_STACK_SIZE 4096

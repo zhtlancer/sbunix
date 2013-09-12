@@ -6,6 +6,6 @@ extern int console_init;
 int init_console(void);
 void clear_console(void);
 
-void putchar_console(unsigned char asc_ctl, unsigned char ch);
+void putc_con(int ch);
 
 #endif

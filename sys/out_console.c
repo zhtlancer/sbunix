@@ -16,20 +16,6 @@ int console_init = 0;
 static volatile unsigned char *buffer_base;
 static long buffer_pos;
 
-int init_console(void)
-{
-	buffer_base = (void *) BUFFER_BASE;
-	clear_console();
-
-	console_init = 1;
-	{
-		int i;
-		for (i = 0; i < 2501; i++)
-			putchar_console(0, 'D');
-	}
-	return 0;
-}
-
 void clear_console(void)
 {
 	int i;
@@ -40,7 +26,7 @@ void clear_console(void)
 	buffer_pos = 0;
 }
 
-void putchar_console(unsigned char asc_ctl,
+static void putchar_console(unsigned char asc_ctl,
 		unsigned char ch)
 {
 	/* Check if we reach the bottom */
@@ -63,3 +49,23 @@ void putchar_console(unsigned char asc_ctl,
 	buffer_base[buffer_pos++] = ch;
 	buffer_base[buffer_pos++] = asc_ctl;
 }
+
+void putc_con(int ch)
+{
+	int asc_ctl;
+	/* If ASC mode not set, use black on white */
+	if ((asc_ctl = ch >> (sizeof(unsigned char)*8)) == 0)
+		asc_ctl = 0x07;
+
+	putchar_console(asc_ctl, ch & 0xFF);
+}
+
+int init_console(void)
+{
+	buffer_base = (void *) BUFFER_BASE;
+	clear_console();
+
+	console_init = 1;
+	return 0;
+}
+

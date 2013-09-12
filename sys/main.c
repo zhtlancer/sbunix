@@ -1,10 +1,12 @@
 #include <defs.h>
 
+#include <console.h>
 #include <printf.h>
 
 void start(void* modulep, void* physbase, void* physfree)
 {
 	int rval = 0;
+
 	// kernel starts here
 	rval = init_console();
 	if (rval != 0) {
@@ -12,6 +14,19 @@ void start(void* modulep, void* physbase, void* physfree)
 		 * put error handler here
 		 */
 	}
+
+	rval = printf("Test\n");
+	printf("rval = %d\n", rval);
+	rval = printf("%%c: %c\n", 'j');
+	printf("rval = %d\n", rval);
+	rval = printf("%%s: %s\n", "deadbeef");
+	printf("rval = %d\n", rval);
+	rval = printf("%%d: %d\n", 1234567890);
+	printf("rval = %d\n", rval);
+	rval = printf("%%p: %p\n", 0);
+	printf("rval = %d\n", rval);
+	rval = printf("%%x: %x\n", 0xdeadbeef);
+	printf("rval = %d\n", rval);
 
 	while (1) /* We are not expected to return */
 		;

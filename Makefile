@@ -1,21 +1,23 @@
 CC=gcc
-CFLAGS=-O1 -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -fno-builtin -fPIC -mtune=amdfam10 -g3
+AS=as
+CFLAGS=-O1 -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -mtune=amdfam10 -g3
 LD=ld
 LDLAGS=-nostdlib
 AR=ar
 
-KERN_SRCS:=$(wildcard sys/*.c)
+KERN_SRCS:=$(wildcard sys/*.c sys/*.s)
 LIBC_SRCS:=$(wildcard libc/*.c)
 LD_SRCS:=$(wildcard ld/*.c)
 
 $(USER).iso: kernel $(USER).img
+	@mkdir -p bootcd/boot/kernel
 	cp kernel bootcd/boot/kernel/kernel
 	mkisofs -r -no-emul-boot -input-charset utf-8 -b boot/cdboot -o $@ bootcd/
 
 $(USER).img: libc.a libc.so
 	qemu-img create -f raw $@ 16M
 
-kernel: $(KERN_SRCS:%.c=obj/%.o)
+kernel: $(patsubst %.s,obj/%.asm.o,$(KERN_SRCS:%.c=obj/%.o))
 	${LD} ${LDLAGS} -o $@ -T linker.script $^
 
 libc.a: $(LIBC_SRCS:%.c=obj/%.o)
@@ -30,6 +32,10 @@ ld.so: $(LD_SRCS:%.c=obj/%.o)
 obj/%.o: %.c $(wildcard include/*.h)
 	@mkdir -p $(dir $@)
 	${CC} -c ${CFLAGS} -o $@ $<
+
+obj/%.asm.o: %.s
+	@mkdir -p $(dir $@)
+	${AS} -o $@ $<
 
 .PHONY: submit clean
 

@@ -6,3 +6,4 @@ bootcd/boot/kernel/kernel
 *.so
 kernel
 obj/
+tags

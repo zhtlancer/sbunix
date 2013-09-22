@@ -11,5 +11,7 @@ typedef int __int32_t;
 typedef __int32_t int32_t;
 typedef unsigned short __uint16_t;
 typedef __uint16_t uint16_t;
+typedef unsigned char __uint8_t;
+typedef __uint8_t uint8_t;
 
 #endif

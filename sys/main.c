@@ -1,5 +1,6 @@
 #include <defs.h>
 #include <sys/gdt.h>
+#include <sys/idt.h>
 
 #include <console.h>
 #include <printf.h>
@@ -28,6 +29,8 @@ void start(void* modulep, void* physbase, void* physfree)
 	printf("rval = %d\n", rval);
 	rval = printf("%%x: %x\n", 0xdeadbeef);
 	printf("rval = %d\n", rval);
+
+	setup_idt();
 
 	while (1) /* We are not expected to return */
 		;

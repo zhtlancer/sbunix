@@ -30,6 +30,8 @@ void start(void* modulep, void* physbase, void* physfree)
 	rval = printf("%%x: %x\n", 0xdeadbeef);
 	printf("rval = %d\n", rval);
 
+	printf("sizeof idt = %x\n", sizeof(struct idt_desc));
+
 	setup_idt();
 
 	while (1) /* We are not expected to return */

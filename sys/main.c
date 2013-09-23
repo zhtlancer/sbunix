@@ -24,17 +24,17 @@ void start(void* modulep, void* physbase, void* physfree)
 
 
 	rval = printf("Test\n");
-	printf("rval = %d\n", rval);
+	printf("rval =\t%d\n", rval);
 	rval = printf("%%c: %c\n", 'j');
-	printf("rval = %d\n", rval);
+	printf("rval =\t%d\n", rval);
 	rval = printf("%%s: %s\n", "deadbeef");
-	printf("rval = %d\n", rval);
+	printf("rval =\t%d\n", rval);
 	rval = printf("%%d: %d\n", 1234567890);
-	printf("rval = %d\n", rval);
+	printf("rval =\t%d\n", rval);
 	rval = printf("%%p: %p\n", 0);
-	printf("rval = %d\n", rval);
+	printf("rval =\t%d\n", rval);
 	rval = printf("%%x: %x\n", 0xdeadbeef);
-	printf("rval = %d\n", rval);
+	printf("rval =\t%d\n", rval);
 
 	printf("sizeof idt = %x\n", sizeof(struct idt_desc));
 

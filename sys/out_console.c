@@ -46,10 +46,36 @@ void clear_console(void)
 static void putchar_console(unsigned char asc_ctl,
 		unsigned char ch)
 {
+	int is_visible = 0;
+
+	switch (ch) {
+		case '\b':
+			if (buffer_pos > 0) {
+				buffer_pos -= 1;
+				buffer_base[buffer_pos] = ' ';
+				buffer_base[buffer_pos+1] = asc_ctl;
+			}
+			break;
+		case '\n':
+			buffer_pos += COL_SIZE * UNIT_SIZE;
+		case '\r':
+			buffer_pos -= buffer_pos % (COL_SIZE * UNIT_SIZE);
+			break;
+		case '\t':
+			putchar_console(asc_ctl, ' ');
+			putchar_console(asc_ctl, ' ');
+			putchar_console(asc_ctl, ' ');
+			putchar_console(asc_ctl, ' ');
+			break;
+		default:
+			is_visible = 1;
+			break;
+
+	}
 	/* Check if we reach the bottom */
-	if (buffer_pos == CON_BUFFER_SIZE) {
+	if (buffer_pos >= CON_BUFFER_SIZE) {
 		int i, j;
-		for (i = 0, j = COL_SIZE;
+		for (i = 0, j = COL_SIZE * UNIT_SIZE;
 				j < CON_BUFFER_SIZE;
 				i += 1, j += 1) {
 			buffer_base[i] = buffer_base[j];
@@ -60,11 +86,13 @@ static void putchar_console(unsigned char asc_ctl,
 			buffer_base[i] = 0;
 
 		/* Put cursor to the beginning of last line */
-		buffer_pos = CON_BUFFER_SIZE - COL_SIZE;
+		buffer_pos = CON_BUFFER_SIZE - COL_SIZE * UNIT_SIZE;
 	}
 
-	buffer_base[buffer_pos++] = ch;
-	buffer_base[buffer_pos++] = asc_ctl;
+	if (is_visible) {
+		buffer_base[buffer_pos++] = ch;
+		buffer_base[buffer_pos++] = asc_ctl;
+	}
 }
 
 void putc_con(int ch)

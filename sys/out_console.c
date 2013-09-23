@@ -11,7 +11,17 @@
 #define ROW_SIZE	(25)
 #define UNIT_SIZE	(2)
 
-#define BUFFER_SIZE	(COL_SIZE * ROW_SIZE * UNIT_SIZE)
+#define CON_ROW_SIZE	(24)
+#define CON_BUFFER_SIZE	(COL_SIZE * CON_ROW_SIZE * UNIT_SIZE)
+
+/* Status line macros */
+#define SL_ROW_START	24
+#define SL_ROW_SIZE	1
+#define SL_BUFFER_START	(CON_BUFFER_SIZE)
+#define SL_BUFFER_SIZE	(COL_SIZE * SL_ROW_SIZE * UNIT_SIZE)
+#define SL_BUFFER_END	(CON_BUFFER_SIZE + SL_BUFFER_SIZE)
+#define SL_ASCII	0xF1
+
 
 int console_inited = 0;
 
@@ -22,8 +32,13 @@ void clear_console(void)
 {
 	int i;
 
-	for (i = 0; i < BUFFER_SIZE; i++)
+	for (i = 0; i < CON_BUFFER_SIZE; i++)
 		buffer_base[i] = 0;
+
+	for (i = SL_BUFFER_START;i < SL_BUFFER_END; ) {
+		buffer_base[i++] = ' ';
+		buffer_base[i++] = SL_ASCII;
+	}
 
 	buffer_pos = 0;
 }
@@ -32,20 +47,20 @@ static void putchar_console(unsigned char asc_ctl,
 		unsigned char ch)
 {
 	/* Check if we reach the bottom */
-	if (buffer_pos == BUFFER_SIZE) {
+	if (buffer_pos == CON_BUFFER_SIZE) {
 		int i, j;
 		for (i = 0, j = COL_SIZE;
-				j < BUFFER_SIZE;
+				j < CON_BUFFER_SIZE;
 				i += 1, j += 1) {
 			buffer_base[i] = buffer_base[j];
 		}
 
 		/* Clear the last line */
-		for ( ; i < BUFFER_SIZE; i += 1)
+		for ( ; i < CON_BUFFER_SIZE; i += 1)
 			buffer_base[i] = 0;
 
 		/* Put cursor to the beginning of last line */
-		buffer_pos = BUFFER_SIZE - COL_SIZE;
+		buffer_pos = CON_BUFFER_SIZE - COL_SIZE;
 	}
 
 	buffer_base[buffer_pos++] = ch;
@@ -84,22 +99,34 @@ int console_init(void)
 
 void update_timer(void)
 {
-	uint64_t num = jiffies * 10000 / 182065;
+	uint64_t num[3];
 	int buf[64];
 	int w = 0, i;
 
-	while (num >= 10) {
-		buf[w++] = num % 10;
-		num /= 10;
+	num[0] = jiffies * 10000 / 182065;
+	num[2] = num[0] / 3600;
+	num[0] %= 3600;
+	num[1] = num[0] /60;
+	num[0] %= 60;
+
+	for (i = 0; i < 3; i++) {
+		while (num[i] >= 10) {
+			buf[w++] = num[i] % 10 + '0';
+			num[i] /= 10;
+		}
+
+		if (num[i])
+			buf[w++] = num[i] + '0';
+
+		while (w < (i+1)*2+i)
+			buf[w++] = '0';
+		buf[w++] = ':';
 	}
 
-	if (num)
-		buf[w++] = num;
+	w -= 1; /* Remove uneeded ':' */
+	buf[w++] = ' '; buf[w++] = 'E'; buf[w++] = 'M'; buf[w++] = 'I'; buf[w++] = 'T'; buf[w++] = 'P'; buf[w++] = 'U';
 
-	if (w == 0)
-		buf[w++] = 0;
-
-	for (i = w; i > 0; i -= 1)
-		putchar_console_pos(0x07, "0123456789"[buf[i-1]], 24, w-i);
+	for (i = 0; i < w; i++)
+		putchar_console_pos(SL_ASCII, buf[i], SL_ROW_START, COL_SIZE-i-1);
 }
 

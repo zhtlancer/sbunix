@@ -14,7 +14,7 @@ void update_jiffies(void)
 {
 	jiffies += 1;
 
-	if (!(jiffies % 5))
+	if (!(jiffies % 3))
 		update_timer();
 }
 

@@ -29,5 +29,8 @@ _irqentry_timer:
 _irqentry_kbd:
 	movq $33, %rdi
 	call intr_handler
+	in $0x60, %al
+	mov $0x20, %al
+	out %al, $0x20
 	iretq
 

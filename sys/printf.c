@@ -34,6 +34,9 @@ static void printnum(unsigned long long num,
 	if (num)
 		buf[w++] = num;
 
+	if (width == 0 && w == 0)
+		buf[w++] = 0;
+
 	for (width -= w; width > 0; width -= 1)
 		act(asc_ctl | pad, cnt);
 

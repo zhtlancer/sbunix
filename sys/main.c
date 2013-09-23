@@ -8,14 +8,20 @@
 void start(void* modulep, void* physbase, void* physfree)
 {
 	int rval = 0;
+	/*int d = 1;*/
 
 	// kernel starts here
-	rval = init_console();
+	rval = console_init();
 	if (rval != 0) {
 		/* FIXME:
 		 * put error handler here
 		 */
 	}
+
+
+	/*while (d);*/
+	setup_idt();
+
 
 	rval = printf("Test\n");
 	printf("rval = %d\n", rval);
@@ -31,8 +37,6 @@ void start(void* modulep, void* physbase, void* physfree)
 	printf("rval = %d\n", rval);
 
 	printf("sizeof idt = %x\n", sizeof(struct idt_desc));
-
-	setup_idt();
 
 	while (1) /* We are not expected to return */
 		;

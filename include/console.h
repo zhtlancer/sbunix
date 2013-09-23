@@ -1,11 +1,13 @@
 #ifndef _CONSOLE_H
 #define _CONSOLE_H
 
-extern int console_init;
+extern int console_inited;
 
-int init_console(void);
+int console_init(void);
 void clear_console(void);
 
 void putc_con(int ch);
+
+void update_timer(void);
 
 #endif

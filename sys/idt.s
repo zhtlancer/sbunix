@@ -11,18 +11,23 @@ _x86_64_asm_lidt:
 .global _irqentry_generic
 .type _irqentry_generic, @function
 _irqentry_generic:
-	call irq_handler
+	movq $0, %rdi
+	call intr_handler
 	iretq
 
+.extern _jiffies
 .global _irqentry_timer
 .type _irqentry_timer, @function
 _irqentry_timer:
-	call irq_handler
+	call update_jiffies
+	mov $0x20, %al
+	out %al, $0x20
 	iretq
 
 .global _irqentry_kbd
 .type _irqentry_kbd, @function
 _irqentry_kbd:
-	call irq_handler
+	movq $33, %rdi
+	call intr_handler
 	iretq
 

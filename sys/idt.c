@@ -55,7 +55,7 @@ void setup_idt(void)
 	_x86_64_asm_lidt(&idtr);
 }
 
-void irq_handler(void)
+void intr_handler(unsigned long vector_num)
 {
-	printf("Handler called\n");
+	printf("Handler called, vector = %x\n", vector_num);
 }

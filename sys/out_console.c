@@ -2,6 +2,7 @@
 #include <console.h>
 #include <printf.h>
 #include <sys/timer.h>
+#include <sys/io.h>
 
 /* We currently assume we have an 80x25 console,
  * located at 0xB8000 */
@@ -28,6 +29,38 @@ int console_inited = 0;
 static volatile unsigned char *buffer_base;
 static long buffer_pos;
 
+static int video_io_base;
+
+static void move_cursor(uint8_t row, uint8_t col)
+{
+	int pos;
+
+	if (row > COL_SIZE || col > ROW_SIZE) {
+		return;
+	}
+
+	pos = row * 80 + col;
+	
+/*#define BIOS_CURSOR 1*/
+#define IO_CURSOR 1
+#ifdef BIOS_CURSOR
+	asm ("movb $0, %%bh\n\t"
+			"movb %0, %%dh\n\t"
+			"movb %1, %%dl\n\t"
+			"movb $0x02, %%ah\n\t"
+			"int $0x10"
+			:
+			: "g"(row), "g"(col)
+			: "%ah", "%bh", "%dx");
+#else
+	outb(0x3D4, 0x0F);
+	outb(0x3D5, (uint8_t)(pos & 0xFF));
+
+	outb(0x3D4, 0x0E);
+	outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+#endif
+}
+
 void clear_console(void)
 {
 	int i;
@@ -41,6 +74,18 @@ void clear_console(void)
 	}
 
 	buffer_pos = 0;
+	{
+		int i, j, k = 1;
+
+		for (i = 0; i <= 25; i++)
+			for (j = 0; j <= 80; j++) {
+				move_cursor(i, j);
+				k = 10000;
+				while (k-- > 0);
+			}
+	}
+
+	move_cursor(0, 0);
 }
 
 static void putchar_console(unsigned char asc_ctl,
@@ -93,6 +138,8 @@ static void putchar_console(unsigned char asc_ctl,
 		buffer_base[buffer_pos++] = ch;
 		buffer_base[buffer_pos++] = asc_ctl;
 	}
+
+	move_cursor(buffer_pos / 2 / COL_SIZE, (buffer_pos / 2) % COL_SIZE);
 }
 
 void putc_con(int ch)
@@ -119,7 +166,10 @@ void putchar_console_pos(int asc_ctl, unsigned char ch, int row, int col)
 int console_init(void)
 {
 	buffer_base = (void *) BUFFER_BASE;
+	video_io_base = inw(0x0463);
 	clear_console();
+
+	printf("Video base addr = 0x%x\n", video_io_base);
 
 	console_inited = 1;
 	return 0;

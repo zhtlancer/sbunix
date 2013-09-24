@@ -27,9 +27,10 @@ _irqentry_timer:
 .global _irqentry_kbd
 .type _irqentry_kbd, @function
 _irqentry_kbd:
-	movq $33, %rdi
-	call intr_handler
+	movq $0, %rax
 	in $0x60, %al
+	movq %rax, %rdi
+	call kbd_intr_handler
 	mov $0x20, %al
 	out %al, $0x20
 	iretq

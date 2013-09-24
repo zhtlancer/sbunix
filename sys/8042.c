@@ -1,5 +1,11 @@
 #include <defs.h>
 #include <printf.h>
+#include <console.h>
+
+#define SC_PRESS_BOUND		0x58
+#define SC_RELEASE_BOUND	0xD8
+
+#define SC_R_OFFSET	0x80 /* offset between press/release */
 
 #define SC_P_ESC	0x0100
 #define SC_P_BS		0x0200
@@ -51,20 +57,34 @@
 #define SC_R_NUMLOCK	0x9700
 #define SC_R_SCLOCK	0x9800
 
+static uint8_t is_capslock;
+static uint8_t is_l_shift;
+static uint8_t is_r_shift;
+static uint8_t is_l_alt;
+static uint8_t is_r_alt;
+static uint8_t is_l_ctrl;
+static uint8_t is_r_ctrl;
 
+#define IS_NORMAL_KEY(key)	(!((key) & 0xFF00) && ((key) != '`'))
+#define IS_CONVERTIBLE(key)	(!((key) & 0xFF00) && ((key) == '`'))
+
+#define IS_SHIFT	(is_l_shift || is_r_shift)
+#define IS_CTRL		(is_l_ctrl || is_r_ctrl)
+#define IS_ALT		(is_l_alt || is_r_alt)
+#define IS_CAPSLOCK	(is_capslock)
 
 static uint16_t scancode_table[] = {
-	0, SC_P_ESC, '1', '2', '3',	/* 0x00 - 0x04 */
-	'4', '5', '6', '7', '8',	/* 0x05 - 0x09 */
-	'9', '0', '-', '=', SC_P_BS,	/* 0x0A - 0x0E */
-	SC_P_TAB, 'q', 'w', 'e', 'r',	/* 0x0F - 0x13 */
-	't', 'y', 'u', 'i', 'o',	/* 0x14 - 0x18 */
-	'p', '[', ']', SC_P_ENTER, SC_P_L_CTRL,	/* 0x19 - 0x1D */
-	'a', 's', 'd', 'f', 'g',	/* 0x1E - 0x22 */
-	'h', 'j', 'k', 'l', ';',	/* 0x23 - 0x27 */
-	'\'', '`', SC_P_L_SHIFT, '\\', 'z',	/* 0x28 - 0x2C */
-	'x', 'c', 'v', 'b', 'n',	/* 0x2D - 0x31 */
-	'm', ',', '.', '/', SC_P_R_SHIFT,	/* 0x32 - 0x36 */
+	0, SC_P_ESC, '`', '`', '`',	/* 0x00 - 0x04 */
+	'`', '`', '`', '`', '`',	/* 0x05 - 0x09 */
+	'`', '`', '`', '`', SC_P_BS,	/* 0x0A - 0x0E */
+	SC_P_TAB, '`', '`', '`', '`',	/* 0x0F - 0x13 */
+	'`', '`', '`', '`', '`',	/* 0x14 - 0x18 */
+	'`', '`', '`', SC_P_ENTER, SC_P_L_CTRL,	/* 0x19 - 0x1D */
+	'`', '`', '`', '`', '`',	/* 0x1E - 0x22 */
+	'`', '`', '`', '`', '`',	/* 0x23 - 0x27 */
+	'`', '`', SC_P_L_SHIFT, '`', '`',	/* 0x28 - 0x2C */
+	'`', '`', '`', '`', '`',	/* 0x2D - 0x31 */
+	'`', '`', '`', '`', SC_P_R_SHIFT,	/* 0x32 - 0x36 */
 	'*', SC_P_L_ALT, SC_P_SPACE, SC_P_CAPSLOCK, SC_P_F1,	/* 0x37 - 0x3B */
 	SC_P_F2, SC_P_F3, SC_P_F4, SC_P_F5, SC_P_F6,	/* 0x3C - 0x40 */
 	SC_P_F7, SC_P_F8, SC_P_F9, SC_P_F10, SC_P_NUMLOCK,	/* 0x41 - 0x45 */
@@ -101,7 +121,119 @@ static uint16_t scancode_table[] = {
 	/*, , , , ,	[> 0xDC - 0xE0 <]*/
 };
 
+static uint16_t scancode_table_convert[][0x37] = {
+	{
+		0, 0, '1', '2', '3',		/* 0x00 - 0x04 */
+		'4', '5', '6', '7', '8',	/* 0x05 - 0x09 */
+		'9', '0', '-', '=', 0,		/* 0x0A - 0x0E */
+		0, 'q', 'w', 'e', 'r',		/* 0x0F - 0x13 */
+		't', 'y', 'u', 'i', 'o',	/* 0x14 - 0x18 */
+		'p', '[', ']', 0, 0,		/* 0x19 - 0x1D */
+		'a', 's', 'd', 'f', 'g',	/* 0x1E - 0x22 */
+		'h', 'j', 'k', 'l', ';',	/* 0x23 - 0x27 */
+		'\'', '`', 0, '\\', 'z',	/* 0x28 - 0x2C */
+		'x', 'c', 'v', 'b', 'n',	/* 0x2D - 0x31 */
+		'm', ',', '.', '/', 0,		/* 0x32 - 0x36 */
+	},
+	{
+		0, 0, '!', '@', '#',		/* 0x00 - 0x04 */
+		'$', '%', '^', '&', '*',	/* 0x05 - 0x09 */
+		'(', ')', '_', '+', 0,		/* 0x0A - 0x0E */
+		0, 'Q', 'W', 'E', 'R',		/* 0x0F - 0x13 */
+		'T', 'Y', 'U', 'I', 'O',	/* 0x14 - 0x18 */
+		'P', '{', '}', 0, 0,		/* 0x19 - 0x1D */
+		'A', 'S', 'D', 'F', 'G',	/* 0x1E - 0x22 */
+		'H', 'J', 'K', 'L', ':',	/* 0x23 - 0x27 */
+		'"', '~', 0, '|', 'Z',		/* 0x28 - 0x2C */
+		'X', 'C', 'V', 'B', 'N',	/* 0x2D - 0x31 */
+		'M', '<', '>', '?', 0,		/* 0x32 - 0x36 */
+	},
+	{
+		0, 0, '1', '2', '3',		/* 0x00 - 0x04 */
+		'4', '5', '6', '7', '8',	/* 0x05 - 0x09 */
+		'9', '0', '-', '=', 0,		/* 0x0A - 0x0E */
+		0, 'Q', 'W', 'E', 'R',		/* 0x0F - 0x13 */
+		'T', 'Y', 'U', 'I', 'O',	/* 0x14 - 0x18 */
+		'P', '[', ']', 0, 0,		/* 0x19 - 0x1D */
+		'A', 'S', 'D', 'F', 'G',	/* 0x1E - 0x22 */
+		'H', 'J', 'K', 'L', ';',	/* 0x23 - 0x27 */
+		'\'', '`', 0, '\\', 'Z',	/* 0x28 - 0x2C */
+		'X', 'C', 'V', 'B', 'N',	/* 0x2D - 0x31 */
+		'M', ',', '.', '/', 0,		/* 0x32 - 0x36 */
+	},
+	{
+		0, 0, '!', '@', '#',		/* 0x00 - 0x04 */
+		'$', '%', '^', '&', '*',	/* 0x05 - 0x09 */
+		'(', ')', '_', '+', 0,		/* 0x0A - 0x0E */
+		0, 'q', 'w', 'e', 'r',		/* 0x0F - 0x13 */
+		't', 'y', 'u', 'i', 'o',	/* 0x14 - 0x18 */
+		'p', '{', '}', 0, 0,		/* 0x19 - 0x1D */
+		'a', 's', 'd', 'f', 'g',	/* 0x1E - 0x22 */
+		'h', 'j', 'k', 'l', ':',	/* 0x23 - 0x27 */
+		'"', '~', 0, '|', 'z',		/* 0x28 - 0x2C */
+		'x', 'c', 'v', 'b', 'n',	/* 0x2D - 0x31 */
+		'm', '<', '>', '?', 0,		/* 0x32 - 0x36 */
+	},
+};
+
 static int scancode_table_sz = sizeof(scancode_table) / sizeof(uint16_t);
+
+#define KBD_STATUS_LENGTH	25
+static void update_kbd_status(uint32_t scan_code)
+{
+	char buf[50];
+	int i;
+
+	for (i = 0; i < KBD_STATUS_LENGTH; i++)
+		buf[i] = ' ';
+
+	i = 0;
+
+	if (IS_CAPSLOCK) {
+		buf[i++] = 'C';
+		buf[i++] = 'A';
+		buf[i++] = 'P';
+		i += 1;
+	}
+
+	if (IS_CTRL) {
+		buf[i++] = 'C';
+		buf[i++] = 'T';
+		buf[i++] = 'R';
+		buf[i++] = 'L';
+		i += 1;
+	}
+
+	if (IS_ALT) {
+		buf[i++] = 'A';
+		buf[i++] = 'L';
+		buf[i++] = 'T';
+		i += 1;
+	}
+
+	if (IS_SHIFT) {
+		buf[i++] = 'S';
+		buf[i++] = 'H';
+		buf[i++] = 'I';
+		buf[i++] = 'F';
+		buf[i++] = 'T';
+		i += 1;
+	}
+
+	if (scan_code > SC_PRESS_BOUND)
+		goto out;
+
+	if (IS_NORMAL_KEY(scancode_table[scan_code])) {
+		buf[i++] = scancode_table[scan_code];
+	} else if (IS_CONVERTIBLE(scancode_table[scan_code])) {
+		int idx = IS_CAPSLOCK ? 0x2 : 0x0;
+		idx |= IS_SHIFT ? 0x1 : 0x0;
+		buf[i++] = scancode_table_convert[idx][scan_code];
+	}
+
+out:
+	update_kbd(buf);
+}
 
 void kbd_intr_handler(uint32_t scan_code)
 {
@@ -112,5 +244,51 @@ void kbd_intr_handler(uint32_t scan_code)
 	} else {
 		printf("\tKey: %c\n", scancode_table[scan_code]);
 	}
-	return;
+
+	if (scan_code <= SC_PRESS_BOUND) {
+		/* Deal with special keys */
+		switch (scancode_table[scan_code]) {
+			case SC_P_L_CTRL:
+				is_l_ctrl = 1;
+				is_r_ctrl = 1;
+				break;
+			case SC_P_L_SHIFT:
+				is_l_shift = 1;
+				break;
+			case SC_P_R_SHIFT:
+				is_r_shift = 1;
+				break;
+			case SC_P_L_ALT:
+				is_l_alt = 1;
+				is_r_alt = 1;
+				break;
+			case SC_P_CAPSLOCK:
+				is_capslock = !is_capslock;
+				break;
+		}
+
+	} else if (scan_code <= SC_RELEASE_BOUND) {
+		/* Deal with special keys */
+		switch (scancode_table[scan_code - SC_R_OFFSET]) {
+			case SC_P_L_CTRL:
+				is_l_ctrl = 0;
+				is_r_ctrl = 0;
+				break;
+			case SC_P_L_SHIFT:
+				is_l_shift = 0;
+				break;
+			case SC_P_R_SHIFT:
+				is_r_shift = 0;
+				break;
+			case SC_P_L_ALT:
+				is_l_alt = 0;
+				is_r_alt = 0;
+				break;
+			case SC_P_CAPSLOCK:
+				/* do nothing */
+				break;
+		}
+	}
+
+	update_kbd_status(scan_code);
 }

@@ -208,3 +208,11 @@ void update_timer(void)
 		putchar_console_pos(SL_ASCII, buf[i], SL_ROW_START, COL_SIZE-i-1);
 }
 
+#define KBD_STATUS_LENGTH	25
+void update_kbd(const char *str)
+{
+	int i;
+	
+	for (i = 0; i < KBD_STATUS_LENGTH; i++)
+		putchar_console_pos(SL_ASCII, str[i], SL_ROW_START, i);
+}

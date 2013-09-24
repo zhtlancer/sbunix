@@ -10,4 +10,6 @@ void putc_con(int ch);
 
 void update_timer(void);
 
+void update_kbd(const char *str);
+
 #endif

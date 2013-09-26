@@ -18,13 +18,13 @@ static void printnum(unsigned long long num,
 		int base,
 		int pad,
 		int width,
-		int asc_ctl)
+		int asc_mask)
 {
 	int buf[64];
 	int w = 0;
 
 	if (num < 0) {
-		act(asc_ctl | '-', cnt);
+		act(asc_mask | '-', cnt);
 		num = -num;
 	}
 	while (num >= base) {
@@ -38,10 +38,10 @@ static void printnum(unsigned long long num,
 		buf[w++] = 0;
 
 	for (width -= w; width > 0; width -= 1)
-		act(asc_ctl | pad, cnt);
+		act(asc_mask | pad, cnt);
 
 	for ( ; w > 0; w -= 1)
-		act(asc_ctl | "0123456789abcdef"[buf[w-1]], cnt);
+		act(asc_mask | "0123456789abcdef"[buf[w-1]], cnt);
 }
 
 void vprintfmt(void (*act)(int, void*),
@@ -52,7 +52,7 @@ void vprintfmt(void (*act)(int, void*),
 	register int ch = 0;
 	register const char *p;
 	unsigned long long num;
-	unsigned int asc_ctl = 0;
+	unsigned int asc_mask = 0x0700;
 
 	if (fmt == NULL) {
 		return;
@@ -64,44 +64,76 @@ void vprintfmt(void (*act)(int, void*),
 				return;
 
 			/* Deal with ASC controlling string */
-			if (ch == '\27') {
-				asc_ctl = 0;
+			if (ch == '\27' && (ch = *fmt++) == '[') {
+				unsigned int asc_update = 0;
+				while (1) {
+					ch = *fmt++;
+					if (ch == 'm') {
+						if (!asc_update)
+							asc_mask = 0x0700;
+						break;
+					} else if (ch == ';') {
+						if (!asc_update)
+							asc_mask = 0x0700;
+					} else if (ch == '0') {
+						asc_mask = 0;
+						asc_update = 1;
+					} else if (ch == '3') {
+						ch = *fmt++;
+						if (ch == '\0')
+							return;
+						asc_mask &= ~0x0F00;
+						asc_mask |= (ch - '0') << 8;
+						asc_update = 1;
+					} else if (ch == '4') {
+						ch = *fmt++;
+						if (ch == '\0')
+							return;
+						asc_mask &= ~0xF000;
+						asc_mask |= (ch - '0') << 12;
+						asc_update = 1;
+					} else {
+						act(asc_mask | '?', cnt);
+						act(asc_mask | '?', cnt);
+						act(asc_mask | '?', cnt);
+					}
+				}
 			} else {
-				act(asc_ctl | ch, cnt);
+				act(asc_mask | ch, cnt);
 			}
 		}
 
 		/* Deal with %-escaped string */
 		switch (ch = *fmt++) {
 			case 'c':
-				act(asc_ctl | va_arg(ap, int), cnt);
+				act(asc_mask | va_arg(ap, int), cnt);
 				break;
 			case 'd':
 				num = (unsigned long long) va_arg(ap, int);
-				printnum(num, act, cnt, 10, 0, 0, asc_ctl);
+				printnum(num, act, cnt, 10, 0, 0, asc_mask);
 				break;
 			case 'p':
 				num = (unsigned long long) va_arg(ap, void *);
-				act(asc_ctl | '0', cnt);
-				act(asc_ctl | 'x', cnt);
-				printnum(num, act, cnt, 16, '0', 16, asc_ctl);
+				act(asc_mask | '0', cnt);
+				act(asc_mask | 'x', cnt);
+				printnum(num, act, cnt, 16, '0', 16, asc_mask);
 				break;
 			case 's':
 				if ((p = va_arg(ap, char *)) == NULL)
 					p = "(null)";
 				for ( ; *p != '\0'; p += 1)
-					act(asc_ctl | *p, cnt);
+					act(asc_mask | *p, cnt);
 				break;
 			case 'x':
 				num = (unsigned long long) va_arg(ap, int);
-				printnum(num, act, cnt, 16, 0, 0, asc_ctl);
+				printnum(num, act, cnt, 16, 0, 0, asc_mask);
 				break;
 			case '%':
-				act(asc_ctl | '%', cnt);
+				act(asc_mask | '%', cnt);
 				break;
 			default:
-				act(asc_ctl | '%', cnt);
-				act(asc_ctl | ch, cnt);
+				act(asc_mask | '%', cnt);
+				act(asc_mask | ch, cnt);
 				break;
 		}
 	}

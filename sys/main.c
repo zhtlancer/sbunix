@@ -8,7 +8,6 @@
 void start(void* modulep, void* physbase, void* physfree)
 {
 	int rval = 0;
-	/*int d = 1;*/
 
 	// kernel starts here
 	rval = console_init();
@@ -18,25 +17,37 @@ void start(void* modulep, void* physbase, void* physfree)
 		 */
 	}
 
-
-	/*while (d);*/
 	setup_idt();
 
+	rval = printf("Printf Test");
+	printf(" (rval = \27[32m%d\27[m)\n", rval);
+	rval = printf("\27[34m%%c\27[m: %c %c %c %c %c", 'a', 'B', 'c', ',', '0');
+	printf(" (rval = \27[32m%d\27[m)\n", rval);
+	rval = printf("\27[34m%%s\27[m: %s", "deadbeef");
+	printf(" (rval = \27[32m%d\27[m)\n", rval);
+	rval = printf("\27[34m%%d\27[m: %d", 1234567890);
+	printf(" (rval = \27[32m%d\27[m)\n", rval);
+	rval = printf("\27[34m%%p\27[m: %p", 0);
+	printf(" (rval = \27[32m%d\27[m)\n", rval);
+	rval = printf("\27[34m%%x\27[m: %x", 0xdeadbeef);
+	printf(" (rval = \27[32m%d\27[m)\n", rval);
 
-	rval = printf("Test\n");
-	printf("rval =\t%d\n", rval);
-	rval = printf("%%c: %c\n", 'j');
-	printf("rval =\t%d\n", rval);
-	rval = printf("%%s: %s\n", "deadbeef");
-	printf("rval =\t%d\n", rval);
-	rval = printf("%%d: %d\n", 1234567890);
-	printf("rval =\t%d\n", rval);
-	rval = printf("%%p: %p\n", 0);
-	printf("rval =\t%d\n", rval);
-	rval = printf("%%x: %x\n", 0xdeadbeef);
-	printf("rval =\t%d\n", rval);
+	printf("\nASCII Color Test\n");
+	printf("\t\27[30m*[30m");
+	printf("\27[31m*[31m");
+	printf("\27[32m*[32m");
+	printf("\27[33m*[33m");
+	printf("\27[34m*[34m");
+	printf("\27[35m*[35m");
+	printf("\27[37m*[37m\n");
 
-	printf("sizeof idt = %x\n", sizeof(struct idt_desc));
+	printf("\t\27[40m*[40m");
+	printf("\27[41m*[41m");
+	printf("\27[42m*[42m");
+	printf("\27[43m*[43m");
+	printf("\27[44m*[44m");
+	printf("\27[45m*[45m");
+	printf("\27[47m*[47m\n");
 
 	while (1) /* We are not expected to return */
 		;

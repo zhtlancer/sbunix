@@ -30,13 +30,11 @@ int console_inited = 0;
 static volatile unsigned char *buffer_base;
 static long buffer_pos;
 
-static int video_io_base;
-
 static void move_cursor(uint8_t row, uint8_t col)
 {
 	int pos;
 
-	if (row > COL_SIZE || col > ROW_SIZE) {
+	if (row >= ROW_SIZE || col >= COL_SIZE) {
 		return;
 	}
 
@@ -78,17 +76,6 @@ void clear_console(void)
 	}
 
 	buffer_pos = 0;
-	{
-		int i, j, k = 1;
-
-		for (i = 0; i <= 25; i++)
-			for (j = 0; j <= 80; j++) {
-				move_cursor(i, j);
-				k = 10000;
-				while (k-- > 0);
-			}
-	}
-
 	move_cursor(0, 0);
 }
 
@@ -151,9 +138,13 @@ static void putchar_console(unsigned char asc_ctl,
 void putc_con(int ch)
 {
 	int asc_ctl;
+
+	asc_ctl = ch >> (sizeof(unsigned char)*8);
+#if 0
 	/* If ASC mode not set, use black on white */
 	if ((asc_ctl = ch >> (sizeof(unsigned char)*8)) == 0)
 		asc_ctl = CON_ASCII;
+#endif
 
 	putchar_console(asc_ctl, ch & 0xFF);
 }
@@ -172,10 +163,7 @@ void putchar_console_pos(int asc_ctl, unsigned char ch, int row, int col)
 int console_init(void)
 {
 	buffer_base = (void *) BUFFER_BASE;
-	video_io_base = inw(0x0463);
 	clear_console();
-
-	printf("Video base addr = 0x%x\n", video_io_base);
 
 	console_inited = 1;
 	return 0;

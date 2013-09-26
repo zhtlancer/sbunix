@@ -224,10 +224,14 @@ static void update_kbd_status(uint32_t scan_code)
 		goto out;
 
 	if (IS_NORMAL_KEY(scancode_table[scan_code])) {
+		if (IS_CTRL)
+			buf[i++] = '^';
 		buf[i++] = scancode_table[scan_code];
 	} else if (IS_CONVERTIBLE(scancode_table[scan_code])) {
 		int idx = IS_CAPSLOCK ? 0x2 : 0x0;
 		idx |= IS_SHIFT ? 0x1 : 0x0;
+		if (IS_CTRL)
+			buf[i++] = '^';
 		buf[i++] = scancode_table_convert[idx][scan_code];
 	}
 

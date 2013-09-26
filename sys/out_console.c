@@ -14,6 +14,7 @@
 
 #define CON_ROW_SIZE	(24)
 #define CON_BUFFER_SIZE	(COL_SIZE * CON_ROW_SIZE * UNIT_SIZE)
+#define CON_ASCII	0x07
 
 /* Status line macros */
 #define SL_ROW_START	24
@@ -42,6 +43,7 @@ static void move_cursor(uint8_t row, uint8_t col)
 	pos = row * 80 + col;
 	
 /*#define BIOS_CURSOR 1*/
+#undef BIOS_CURSOR
 #define IO_CURSOR 1
 #ifdef BIOS_CURSOR
 	asm ("movb $0, %%bh\n\t"
@@ -65,8 +67,10 @@ void clear_console(void)
 {
 	int i;
 
-	for (i = 0; i < CON_BUFFER_SIZE; i++)
-		buffer_base[i] = 0;
+	for (i = 0; i < CON_BUFFER_SIZE; ) {
+		buffer_base[i++] = ' ';
+		buffer_base[i++] = CON_ASCII;
+	}
 
 	for (i = SL_BUFFER_START;i < SL_BUFFER_END; ) {
 		buffer_base[i++] = ' ';
@@ -127,8 +131,10 @@ static void putchar_console(unsigned char asc_ctl,
 		}
 
 		/* Clear the last line */
-		for ( ; i < CON_BUFFER_SIZE; i += 1)
-			buffer_base[i] = 0;
+		for ( ; i < CON_BUFFER_SIZE; ) {
+			buffer_base[i++] = ' ';
+			buffer_base[i++] = CON_ASCII;
+		}
 
 		/* Put cursor to the beginning of last line */
 		buffer_pos = CON_BUFFER_SIZE - COL_SIZE * UNIT_SIZE;
@@ -147,7 +153,7 @@ void putc_con(int ch)
 	int asc_ctl;
 	/* If ASC mode not set, use black on white */
 	if ((asc_ctl = ch >> (sizeof(unsigned char)*8)) == 0)
-		asc_ctl = 0x07;
+		asc_ctl = CON_ASCII;
 
 	putchar_console(asc_ctl, ch & 0xFF);
 }

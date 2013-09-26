@@ -57,6 +57,8 @@
 #define SC_R_NUMLOCK	0x9700
 #define SC_R_SCLOCK	0x9800
 
+#define SC_EXT_MASK	0xFF00
+
 static uint8_t is_capslock;
 static uint8_t is_l_shift;
 static uint8_t is_r_shift;
@@ -72,6 +74,12 @@ static uint8_t is_r_ctrl;
 #define IS_CTRL		(is_l_ctrl || is_r_ctrl)
 #define IS_ALT		(is_l_alt || is_r_alt)
 #define IS_CAPSLOCK	(is_capslock)
+
+#define SC_EXT_CODE	0xE0
+static uint8_t is_ext;
+#define IS_EXT	(is_ext)
+#define SET_EXT	(is_ext = 1)
+#define UNSET_EXT	(is_ext = 0)
 
 static uint16_t scancode_table[] = {
 	0, SC_P_ESC, '`', '`', '`',	/* 0x00 - 0x04 */
@@ -176,13 +184,14 @@ static uint16_t scancode_table_convert[][0x37] = {
 	},
 };
 
-static int scancode_table_sz = sizeof(scancode_table) / sizeof(uint16_t);
+/*static int scancode_table_sz = sizeof(scancode_table) / sizeof(uint16_t);*/
 
 #define KBD_STATUS_LENGTH	25
 static void update_kbd_status(uint32_t scan_code)
 {
 	char buf[50];
 	int i;
+	extern int volatile enter_pressed;
 
 	for (i = 0; i < KBD_STATUS_LENGTH; i++)
 		buf[i] = ' ';
@@ -220,8 +229,69 @@ static void update_kbd_status(uint32_t scan_code)
 		i += 1;
 	}
 
+	if ((scan_code & SC_EXT_MASK) == SC_EXT_MASK) {
+		switch (scan_code & ~SC_EXT_MASK) {
+			case 0x48:
+				buf[i++] = 'U';
+				buf[i++] = 'P';
+				break;
+			case 0x4B:
+				buf[i++] = 'L';
+				buf[i++] = 'E';
+				buf[i++] = 'F';
+				buf[i++] = 'T';
+				break;
+			case 0x4D:
+				buf[i++] = 'R';
+				buf[i++] = 'I';
+				buf[i++] = 'G';
+				buf[i++] = 'H';
+				buf[i++] = 'T';
+				break;
+			case 0x50:
+				buf[i++] = 'D';
+				buf[i++] = 'O';
+				buf[i++] = 'W';
+				buf[i++] = 'N';
+				break;
+		}
+	}
+
 	if (scan_code > SC_PRESS_BOUND)
 		goto out;
+
+	switch (scan_code) {
+		case 0x01:
+			buf[i++] = 'E';
+			buf[i++] = 'S';
+			buf[i++] = 'C';
+			break;
+		case 0x0E:
+			buf[i++] = 'B';
+			buf[i++] = 'S';
+			break;
+		case 0x0F:
+			buf[i++] = 'T';
+			buf[i++] = 'A';
+			buf[i++] = 'B';
+			break;
+		case 0x1C:
+			buf[i++] = 'E';
+			buf[i++] = 'N';
+			buf[i++] = 'T';
+			buf[i++] = 'E';
+			buf[i++] = 'R';
+			/* FIXME: ENTER trick */
+			enter_pressed = 1;
+			break;
+		case 0x39:
+			buf[i++] = 'S';
+			buf[i++] = 'P';
+			buf[i++] = 'A';
+			buf[i++] = 'C';
+			buf[i++] = 'E';
+			break;
+	}
 
 	if (IS_NORMAL_KEY(scancode_table[scan_code])) {
 		if (IS_CTRL)
@@ -241,20 +311,42 @@ out:
 
 void kbd_intr_handler(uint32_t scan_code)
 {
-	printf("Scancode %x\n", scan_code);
+	/*printf("Scancode %x\n", scan_code);*/
 
-	if (scan_code >= scancode_table_sz) {
-		printf("\tUnknown scancode\n");
-	} else {
-		printf("\tKey: %c\n", scancode_table[scan_code]);
+	if (scan_code == SC_EXT_CODE) {
+		SET_EXT;
+		return;
 	}
 
-	if (scan_code <= SC_PRESS_BOUND) {
+	/*if (scan_code >= scancode_table_sz) {*/
+		/*printf("\tUnknown scancode\n");*/
+	/*} else {*/
+		/*printf("\tKey: %c\n", scancode_table[scan_code]);*/
+	/*}*/
+
+	if (IS_EXT) {
+		UNSET_EXT;
+		switch (scan_code) {
+			case 0x1D:
+				is_r_ctrl = 1;
+				break;
+			case 0x9D:
+				is_r_ctrl = 0;
+				break;
+			case 0x38:
+				is_r_alt = 1;
+				break;
+			case 0xB8:
+				is_r_alt = 0;
+				break;
+		}
+		scan_code |= SC_EXT_MASK;
+
+	} else if (scan_code <= SC_PRESS_BOUND) {
 		/* Deal with special keys */
 		switch (scancode_table[scan_code]) {
 			case SC_P_L_CTRL:
 				is_l_ctrl = 1;
-				is_r_ctrl = 1;
 				break;
 			case SC_P_L_SHIFT:
 				is_l_shift = 1;
@@ -264,7 +356,6 @@ void kbd_intr_handler(uint32_t scan_code)
 				break;
 			case SC_P_L_ALT:
 				is_l_alt = 1;
-				is_r_alt = 1;
 				break;
 			case SC_P_CAPSLOCK:
 				is_capslock = !is_capslock;
@@ -276,7 +367,6 @@ void kbd_intr_handler(uint32_t scan_code)
 		switch (scancode_table[scan_code - SC_R_OFFSET]) {
 			case SC_P_L_CTRL:
 				is_l_ctrl = 0;
-				is_r_ctrl = 0;
 				break;
 			case SC_P_L_SHIFT:
 				is_l_shift = 0;
@@ -286,7 +376,6 @@ void kbd_intr_handler(uint32_t scan_code)
 				break;
 			case SC_P_L_ALT:
 				is_l_alt = 0;
-				is_r_alt = 0;
 				break;
 			case SC_P_CAPSLOCK:
 				/* do nothing */

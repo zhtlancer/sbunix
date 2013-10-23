@@ -61,11 +61,11 @@ obj/%.asm.o: %.s
 	@mkdir -p $(dir $@)
 	$(AS) -o $@ $<
 
-.PHONY: submit clean
+.PHONY: submitxxx clean
 
 SUBMITTO:=~mferdman/cse506-submit/
 
-submit: clean
+submitxxx: clean
 	tar -czvf $(USER).tgz --exclude=$(ROOTLIB) --exclude=$(ROOTBIN) --exclude=.empty --exclude=.*.sw? --exclude=*~ LICENSE Makefile linker.script sys bin libc ld include $(ROOTFS)
 	@gpg --quiet --import cse506-pubkey.txt
 	gpg --yes --encrypt --recipient 'CSE506' $(USER).tgz
@@ -74,4 +74,20 @@ submit: clean
 
 clean:
 	find $(ROOTLIB) $(ROOTBIN) -type f ! -name .empty -print -delete
-	rm -rfv obj kernel $(ROOTBIN)/kernel/kernel
+	rm -rfv obj kernel $(ROOTBOOT)/kernel/kernel
+
+all: $(USER).iso
+new: clean all
+
+r:
+	qemu-system-x86_64 -curses -cdrom $(USER).iso -hda $(USER).img -gdb tcp::2424
+
+rg:
+	qemu-system-x86_64 -curses -cdrom $(USER).iso -hda $(USER).img -gdb tcp::2424 -S
+
+g:
+	gdb kernel 
+
+nr: clean all r
+nrg: clean all rg
+#	/usr/bin/gdb kernel 

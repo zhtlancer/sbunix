@@ -42,7 +42,7 @@
 #define PG_PGT      0x0010 // page table
 #define PG_OBJ      0x0020 // object cache
 #define PG_KMA      0x0040 // allocated by kmalloc
-#define PG_VMA      0x0080 // allocated by kmalloc
+#define PG_VMA      0x0080 // allocated by vmalloc
 
 
 #define OBJCACHE_HEADER_SIZE 80 /* in bytes */
@@ -154,28 +154,6 @@ get_zeroed_page
 );
 
 
-void
-__free_pages
-(
-    page_t      *page       ,
-    uint32_t    order
-);
-
-void
-free_pages
-(
-    void        *va         ,
-    uint32_t    order
-);
-
-
-void
-free_page
-(
-    void        *va         
-);
-
-
 int
 set_pgt_entry
 (
@@ -220,6 +198,16 @@ set_pgt_entry_lv1
     uint08_t    flag      /* flags                                  */
 );
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++   Get/Free Pages
+*/
+
+page_t *
+alloc_free_pages
+(
+    uint16_t    flag        ,
+    uint32_t    num 
+);
 
 page_t *
 alloc_pages
@@ -249,6 +237,57 @@ __get_free_page
     uint16_t    flag        
 );
 
+
+void
+__free_pages_anynumber
+(
+    page_t      *page       ,
+    uint32_t    num
+);
+
+void
+__free_pages
+(
+    page_t      *page       ,
+    uint32_t    order
+);
+
+void
+free_pages
+(
+    void        *va         ,
+    uint32_t    order
+);
+
+
+void
+free_page
+(
+    void        *va         
+);
+
+/*- Get/Free Pages 
+ *--------------------------------------------------------*/
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++   malloc/free
+*/
+
+void *
+kmalloc
+( 
+    uint64_t    size        ,
+    uint16_t    flag        
+);
+
+void
+kfree
+(
+    void*       ptr
+);
+
+/*- malloc/free 
+ *--------------------------------------------------------*/
 
 
 int

@@ -193,6 +193,25 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
     vma_tmp1 = (vma_t *)(get_object( objcache_vma_head ));
 
 
+    /* kmalloc test */
+    uint64_t *u64array = kmalloc( 8*10, PG_SUP );
+    for ( i=0; i<10; i++ )
+        *(u64array+i) = i;
+    for ( i=0; i<10; i++ )
+        k_printf( 0, "%d", *(u64array+i) );
+    k_printf( 0, "\n" );
+    u64array = kmalloc( 4096, PG_SUP );
+    for ( i=0; i<512; i++ )
+        *(u64array+i) = i;
+    for ( i=0; i<10; i++ )
+        k_printf( 0, "%d", *(u64array+i) );
+    k_printf( 0, "\n" );
+    k_printf( 0, "%p\n", u64array );
+    //kfree( u64array );
+    for ( i=0; i<10; i++ )
+        k_printf( 0, "%d", *(u64array+i) );
+    
+    
 
     __asm__("sti");
     __asm__("sti");

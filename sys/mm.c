@@ -162,7 +162,7 @@ find_free_pages
 
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-+ Get/Set Page Table Entry
++   Get/Set Page Table Entry
 */
 
 /* initialize a page table */
@@ -270,21 +270,20 @@ set_pgt_entry_lv1
 
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-+ Get/Free Pages
++   Get/Free Pages
 */
 
 page_t *
-alloc_pages
+alloc_free_pages
 (
     uint16_t    flag        ,
-    uint32_t    order 
+    uint32_t    num 
 )
 {
     page_t *page_tmp    = NULL;
     page_t *page_start  = NULL;
     uint16_t pgt_flag   = PGT_RW;
     uint32_t page_struct_index = 0;
-    uint32_t num = ((uint32_t)1)<<order;
     int i;
 
     page_struct_index = find_free_pages( num );
@@ -313,8 +312,21 @@ alloc_pages
         page_tmp->va    = kvma_end;
     }
 
-    //k_printf( 0, "get pages: address : %p \n", page_tmp );
+    k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
+              num, page_start->va, page_start->flag, page_start->kmalloc_size );
     return page_start;
+}/* alloc_free_pages() */
+
+
+page_t *
+alloc_pages
+(
+    uint16_t    flag        ,
+    uint32_t    order 
+)
+{
+    uint32_t num = ((uint32_t)1)<<order;
+    return alloc_free_pages( flag, num );
 }/* alloc_pages() */
 
 
@@ -366,23 +378,34 @@ get_zeroed_page
 
 
 void
+__free_pages_anynumber
+(
+    page_t      *page       ,
+    uint32_t    num
+)
+{
+    page_t *page_tmp    = page;
+
+    int i;
+    for ( i=0; i<num; ++i, page_tmp+=1 ) {
+        set_pgt_entry_lv4( (addr_t)(page_tmp->va), 0x0, PGT_NP, PGT_EXE,
+                           0x0, 0x0, PGT_SUP );
+        asm volatile("invlpg (%0)" ::"r" ((addr_t)page_tmp->va) : "memory");
+        page_tmp->flag  = PG_FRE | PG_SUP;
+        page_tmp->count = 0;
+        page_tmp->va    = 0x0;
+    }
+} /* __free_pages_anynumber() */
+
+void
 __free_pages
 (
     page_t      *page       ,
     uint32_t    order
 )
 {
-    page_t *page_tmp    = page;
     uint32_t num        = ((uint32_t)1)<<order;
-
-    int i;
-    for ( i=0; i<num; ++i, page_tmp+=1 ) {
-        set_pgt_entry_lv4( (addr_t)(page_tmp->va), 0x0, PGT_NP, PGT_EXE,
-                           0x0, 0x0, PGT_SUP );
-        page_tmp->flag  = PG_FRE | PG_SUP;
-        page_tmp->count = 0;
-        page_tmp->va    = 0x0;
-    }
+    __free_pages_anynumber( page, num );
 } /* __free_pages() */
 
 
@@ -411,6 +434,82 @@ free_page
 /*- Get/Free Pages 
  *--------------------------------------------------------*/
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++   malloc/free
+*/
+
+void *
+kmalloc
+( 
+    uint64_t    size        ,
+    uint16_t    flag        
+)
+{
+
+    if      ( size <=   16 )
+        return get_object( objcache_gen_head[0] );
+    else if ( size <=   32 )
+        return get_object( objcache_gen_head[1] );
+    else if ( size <=   64 )
+        return get_object( objcache_gen_head[2] );
+    else if ( size <=  128 )
+        return get_object( objcache_gen_head[3] );
+    else if ( size <=  256 )
+        return get_object( objcache_gen_head[4] );
+    else if ( size <=  512 )
+        return get_object( objcache_gen_head[5] );
+    else if ( size <= 1024 )
+        return get_object( objcache_gen_head[6] );
+    else if ( size <= __PAGE_SIZE-OBJCACHE_HEADER_SIZE )
+        return get_object( objcache_n4k_head    );
+    
+    else { /* need pages */
+
+        uint32_t    page_num    = ( ((uint32_t)size)>>__PAGE_SIZE_SHIFT )
+                                  + ( (size%__PAGE_SIZE)?1:0 );
+        page_t      *page_start = alloc_free_pages( flag | PG_KMA, page_num );
+        if (page_start==NULL) {
+            k_printf( 0, "kmalloc(): get pages fail\n" );
+            return NULL;
+        }
+        page_start->kmalloc_size = page_num;
+        k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
+                  page_num, page_start->va, page_start->flag, page_start->kmalloc_size );
+        return (void *)(page_start->va);
+    }
+
+    return NULL;
+}  /* kmalloc() */
+
+
+void
+kfree
+(
+    void*       ptr
+)
+{
+    page_t *page_tmp = get_page_from_va( ptr );
+    if      ( (page_tmp->flag & PG_OBJ) ) {
+        return_object( ptr );
+    } 
+    else if ( (page_tmp->flag & PG_KMA) ) {
+        uint32_t page_num = page_tmp->kmalloc_size;
+        __free_pages_anynumber( page_tmp, page_num );
+    }
+    else {
+    }
+}
+
+
+
+
+/*- malloc/free 
+ *--------------------------------------------------------*/
+
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++   manipulate vma
+*/
 
 int
 set_vma
@@ -440,6 +539,9 @@ set_vma
     return 0;
 }/* set_vma */
 
+
+/*- manipulate vma
+ *--------------------------------------------------------*/
 
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -520,10 +622,7 @@ get_object
 
             obj_addr = (((i*64)+j)*size) + start + (addr_t)objcache_tmp;
             objcache_tmp->free -= 1;
-            //k_printf( 0, "inside get_object: %d %d\n", i, j);
-            //k_printf( 0, "inside get_object: start    = %x\n", start     );
-            //k_printf( 0, "inside get_object: size     = %x\n", size     );
-            //k_printf( 0, "inside get_object: obj_addr = %x\n", obj_addr );
+            k_printf( 0, "inside get_object: (%2d %2d) size=%4d, addr=%64x\n", i, j, size, obj_addr);
 
         } /* find first 1 in bmap */
     } /* travel the objcache pages */

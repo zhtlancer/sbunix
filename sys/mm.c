@@ -671,3 +671,4 @@ objcache_t *objcache_n4k_head;       /* near 4k      */
 /*- Object Cache 
  *--------------------------------------------------------*/
 
+/* vim: set ts=8 sw=4 tw=0 noet : */

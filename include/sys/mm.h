@@ -356,3 +356,5 @@ extern addr_t page_begin_addr;
 extern uint32_t page_index_begin;
 
 #endif/*__MM_H__*/
+
+/* vim: set ts=8 sw=4 tw=0 noet : */

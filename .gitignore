@@ -1,5 +1,9 @@
 *.img
 *.iso
+*.swp
 kernel
+tags
+*.so
+*.a
 obj/
 rootfs/

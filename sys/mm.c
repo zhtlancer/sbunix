@@ -90,6 +90,7 @@ get_page_from_va
 }/* get_page_from_va() */
 
 
+/* FIXME: should be deprecated in the future */
 void *
 get_va_from_page
 (
@@ -671,4 +672,4 @@ objcache_t *objcache_n4k_head;       /* near 4k      */
 /*- Object Cache 
  *--------------------------------------------------------*/
 
-/* vim: set ts=8 sw=4 tw=0 noet : */
+/* vim: set ts=4 sw=0 tw=0 noet : */

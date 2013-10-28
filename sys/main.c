@@ -1,6 +1,7 @@
 #include <defs.h>
 #include <sys/gdt.h>
 #include <sys/k_stdio.h>
+#include <sys/sched.h>
 
 #include <sys/mm.h>
 
@@ -215,6 +216,8 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 
     __asm__("sti");
     __asm__("sti");
+
+	sched_init();
 
     // kernel starts here
     while(1);
@@ -569,4 +572,4 @@ void boot(void)
     while(1);
 } /* boot() */
 
-/* vim: set ts=8 sw=4 tw=0 noet : */
+/* vim: set ts=4 sw=0 tw=0 noet : */

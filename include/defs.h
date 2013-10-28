@@ -18,6 +18,9 @@ typedef __uint16_t uint16_t;
 typedef unsigned char       __uint08_t;
 typedef __uint08_t            uint08_t;
 
+typedef unsigned char       __uint8_t;
+typedef __uint8_t            uint8_t;
+
 typedef __uint08_t          __bool_t;
 typedef __bool_t              bool_t;
 
@@ -25,3 +28,5 @@ typedef volatile __uint64_t __addr_t;
 typedef __addr_t              addr_t;;
 
 #endif
+
+/* vim: set ts=4 sw=0 tw=0 noet : */

@@ -1,6 +1,11 @@
 #include <sys/sched.h>
 #include <sys/k_stdio.h>
 
+struct {
+	/* FIXME: maybe we need a lock to protect this */
+	struct task_struct tasks[NPROC];
+} task_table;
+
 uint8_t stack_a[1024];
 uint8_t stack_b[1024];
 

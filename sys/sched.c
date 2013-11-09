@@ -12,7 +12,7 @@ uint8_t stack_b[1024];
 struct context *pa = (struct context *)(stack_a+1024-sizeof(struct context));
 struct context *pb = (struct context *)(stack_b+1024-sizeof(struct context));
 
-void a(void)
+static void a(void)
 {
 	for (;;) {
 		k_printf(0, "Hello\n");
@@ -20,7 +20,7 @@ void a(void)
 	}
 }
 
-void b(void)
+static void b(void)
 {
 	for (;;) {
 		k_printf(0, "World\n");
@@ -31,8 +31,17 @@ void b(void)
 int
 sched_init(void)
 {
+	return 0;
+}
+
+/*
+ * The main loop for SBUNIX
+ * this function should never return
+ */
+void scheduler(void)
+{
+	/* FIXME: This is a swtch test, remove this */
 	{
-		volatile int d = 1;
 		pa->rip = (uint64_t)&a;
 
 		pb->rip = (uint64_t)&b;
@@ -40,10 +49,13 @@ sched_init(void)
 		pb->rbx = 0;
 		pb->rsi = 0;
 		pb->rdi = 0;
-		while (d);
 		swtch_to(pa);
 	}
-	return 0;
+
+	for ( ; ; ) {
+	}
+
+	k_printf(0, "Oops! Why are we here?!\n");
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

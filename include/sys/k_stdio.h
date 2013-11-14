@@ -145,4 +145,6 @@ int vgatext_scroll();
 int vgatext_putchar(const char);
 int k_putchar( unsigned char lvl, const char);
 
+void panic(const char *s);
+
 #endif /* __K_STDIO_H__ */

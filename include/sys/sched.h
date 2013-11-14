@@ -2,6 +2,7 @@
 #define _SCHED_H
 
 #include <defs.h>
+#include <sys/mm.h>
 
 /* Enum values for Task states */
 enum TASK_STATE {
@@ -37,10 +38,16 @@ struct task_struct {
 	struct task_struct *parent;
 
 	/* Saved CR3 register */
-	void *cr3;
+	pgt_t cr3;
 
 	/* Saved context for this process (userspace stack) */
 	struct context *context;
+
+	/*
+	 * TODO:
+	 * # Filesystem related elements (current dir, opened files)
+	 * # Other stuffs that required...
+	 */
 };
 
 int sched_init(void);
@@ -52,5 +59,4 @@ void swtch(struct context **old, struct context *new);
 void swtch_to(struct context *new);
 
 #endif
-
 /* vim: set ts=4 sw=0 tw=0 noet : */

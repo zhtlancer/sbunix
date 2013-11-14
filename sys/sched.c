@@ -32,7 +32,7 @@ int
 sched_init(void)
 {
 	{
-		volatile int d = 1;
+		//volatile int d = 1;
 		pa->rip = (uint64_t)&a;
 
 		pb->rip = (uint64_t)&b;
@@ -40,7 +40,7 @@ sched_init(void)
 		pb->rbx = 0;
 		pb->rsi = 0;
 		pb->rdi = 0;
-		while (d);
+		//while (d);
 		swtch_to(pa);
 	}
 	return 0;

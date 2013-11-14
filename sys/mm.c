@@ -877,5 +877,5 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 
 	return 0;
 }
-
-/* vim: set ts=4 sw=0 tw=0 noet : */
+ 
+/* vim: set ts=4 sw=0 tw=0 noet smarttab expandtab:  */

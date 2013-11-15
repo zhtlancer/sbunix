@@ -23,7 +23,7 @@ vma_t kvma_head;
 uint64_t kvma_end;
 
 /* =========================================================
- * Page Structure        
+ * Page Structure
  * ====================================================== */
 
 
@@ -51,7 +51,7 @@ init_page
             page_tmp->flag      = PG_FRE | PG_USR;
             page_tmp->count     = 0;
             page_tmp->va        = 0x0;
-        }             
+        }
 
         if ( i == page_num-1 )
             page_tmp->next      = 0;
@@ -159,7 +159,7 @@ find_free_pages
     } /* loop all pages */
 
     return free_start;
-}/* find_free_page */ 
+}/* find_free_page */
 
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -257,10 +257,10 @@ set_pgt_entry_lv1
     uint08_t    flag      /* flags                                  */
 )
 {
-    addr_t addr_tmp = 0xFFFF000000000000 
-                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<39) 
-                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<30) 
-                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<21) 
+    addr_t addr_tmp = 0xFFFF000000000000
+                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<39)
+                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<30)
+                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<21)
                       | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<12);
     addr_tmp = addr_tmp | entry<<3;
     return set_pgt_entry( addr_tmp, paddr, present, nx, avl_1, avl_2, flag );
@@ -278,7 +278,7 @@ page_t *
 alloc_free_pages
 (
     uint16_t    flag        ,
-    uint32_t    num 
+    uint32_t    num
 )
 {
     page_t *page_tmp    = NULL;
@@ -298,16 +298,16 @@ alloc_free_pages
                                 : kvma_end;
     page_tmp   = page_start;
     for ( i=0; i<num; ++i, kvma_end+=__PAGE_SIZE, page_tmp+=1 ) {
-   
+
         if ( flag & PG_USR )
             pgt_flag |= PGT_USR;
         else
             pgt_flag |= PGT_SUP;
-            
- 
+
+
         set_pgt_entry_lv4( kvma_end, (page_tmp->idx)<<__PAGE_SIZE_SHIFT, PGT_P, PGT_NX,
                            0x0, 0x0, pgt_flag );
-        
+
         page_tmp->flag  = flag | PG_OCP;
         page_tmp->count = 1;
         page_tmp->va    = kvma_end;
@@ -323,7 +323,7 @@ page_t *
 alloc_pages
 (
     uint16_t    flag        ,
-    uint32_t    order 
+    uint32_t    order
 )
 {
     uint32_t num = ((uint32_t)1)<<order;
@@ -335,7 +335,7 @@ alloc_pages
 page_t *
 alloc_page
 (
-    uint16_t    flag        
+    uint16_t    flag
 )
 {
     return alloc_pages( flag, 0 );
@@ -346,7 +346,7 @@ void *
 __get_free_pages
 (
     uint16_t    flag        ,
-    uint32_t    order 
+    uint32_t    order
 )
 {
     page_t *page_tmp = alloc_pages( flag, order );
@@ -357,7 +357,7 @@ __get_free_pages
 void *
 __get_free_page
 (
-    uint16_t    flag        
+    uint16_t    flag
 )
 {
     return __get_free_pages( flag, 0 );
@@ -367,14 +367,14 @@ __get_free_page
 void *
 get_zeroed_page
 (
-    uint16_t    flag        
+    uint16_t    flag
 )
 {
     uint64_t i;
     uint64_t *uint64_va = (uint64_t *)( __get_free_page( flag ) );
     for( i=0; i<(__PAGE_SIZE/64); ++i )
         *(uint64_va+i) = 0x0;
-    return (void *)(uint64_va); 
+    return (void *)(uint64_va);
 } /* get_zeroed_page() */
 
 
@@ -425,14 +425,14 @@ free_pages
 void
 free_page
 (
-    void        *va         
+    void        *va
 )
 {
     free_pages( va, 0 );
 } /* free_page() */
 
 
-/*- Get/Free Pages 
+/*- Get/Free Pages
  *--------------------------------------------------------*/
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -441,9 +441,9 @@ free_page
 
 void *
 kmalloc
-( 
+(
     uint64_t    size        ,
-    uint16_t    flag        
+    uint16_t    flag
 )
 {
 
@@ -463,7 +463,7 @@ kmalloc
         return get_object( objcache_gen_head[6] );
     else if ( size <= __PAGE_SIZE-OBJCACHE_HEADER_SIZE )
         return get_object( objcache_n4k_head    );
-    
+
     else { /* need pages */
 
         uint32_t    page_num    = ( ((uint32_t)size)>>__PAGE_SIZE_SHIFT )
@@ -492,7 +492,7 @@ kfree
     page_t *page_tmp = get_page_from_va( ptr );
     if      ( (page_tmp->flag & PG_OBJ) ) {
         return_object( ptr );
-    } 
+    }
     else if ( (page_tmp->flag & PG_KMA) ) {
         uint32_t page_num = page_tmp->kmalloc_size;
         __free_pages_anynumber( page_tmp, page_num );
@@ -504,7 +504,7 @@ kfree
 
 
 
-/*- malloc/free 
+/*- malloc/free
  *--------------------------------------------------------*/
 
 
@@ -515,16 +515,16 @@ kfree
 int
 set_vma
 (
-    vma_t       *vma_p      ,        
+    vma_t       *vma_p      ,
     addr_t      vm_start    ,
     addr_t      vm_end      ,
     struct vma* next        ,
     addr_t      anon_vma    ,
     addr_t      file        ,
-    addr_t      ofs         , 
+    addr_t      ofs         ,
     uint64_t    rsv_1       ,
     uint64_t    rsv_2       ,
-    uint16_t    flag         
+    uint16_t    flag
 )
 {
     vma_p->vm_start = vm_start  ;
@@ -532,7 +532,7 @@ set_vma
     vma_p->next     = next      ;
     vma_p->anon_vma = anon_vma  ;
     vma_p->file     = file      ;
-    vma_p->ofs      = ofs       ; 
+    vma_p->ofs      = ofs       ;
     vma_p->rsv_1    = rsv_1     ;
     vma_p->rsv_2    = rsv_2     ;
     vma_p->flag     = flag      ;
@@ -552,7 +552,7 @@ set_vma
 objcache_t *
 create_objcache
 (
-    uint16_t    flag        , 
+    uint16_t    flag        ,
     uint16_t    size            /* size of the object */
 )
 {
@@ -567,9 +567,9 @@ create_objcache
         k_printf( 0, "create_objcache_page() fail: Cannot alloc_page.\n" );
         return NULL;
     }
-    
+
     objcache_tmp = (objcache_t *)(page_tmp->va);
-    objcache_tmp->flag      = flag      ;   
+    objcache_tmp->flag      = flag      ;
     objcache_tmp->size      = size      ;
     objcache_tmp->start     = start     ;
     objcache_tmp->count     = count     ;
@@ -594,15 +594,15 @@ get_object
     uint16_t start      = objcache_head->start  ;
     uint16_t size       = objcache_head->size   ;
     uint16_t count      = objcache_head->count  ;
-    uint64_t i=0, j=0;   
- 
+    uint64_t i=0, j=0;
+
     objcache_t *objcache_tmp;
     for ( objcache_tmp=objcache_head; objcache_tmp!=NULL; objcache_tmp=objcache_tmp->next ) {
         if ( objcache_tmp->free == 0 )
             continue;
         else {
             for ( i=0; i<8; ++i ) {
-                
+
                 if ( objcache_tmp->bmap[i] == 0 )
                     continue;
                 else {
@@ -610,7 +610,7 @@ get_object
                         if ( ((i*64)+j) > count )
                             break;
                         if ( objcache_tmp->bmap[i] & ((uint64_t)1<<j) ) {
-                            objcache_tmp->bmap[i] = objcache_tmp->bmap[i] & (~((uint64_t)1<<j)); 
+                            objcache_tmp->bmap[i] = objcache_tmp->bmap[i] & (~((uint64_t)1<<j));
                             //k_printf( 0, "inside get_object: %d %d bmap[i] = %x\n", i, j, objcache_tmp->bmap[i] );
                             break;
                         }
@@ -636,7 +636,7 @@ get_object
             k_printf( 0, "get_object() fail: cannot create object page.\n" );
             return NULL;
         }
-    
+
         //k_printf( 0, "inside get_object: new obj cache created = %p\n", objcache_tmp );
         objcache_tmp->bmap[0] = 0xFFFFFFFFFFFFFFFE;
         objcache_tmp->next = objcache_head->next;
@@ -647,7 +647,7 @@ get_object
 
     return (void *)obj_addr;
 } /* get_object() */
-     
+
 void
 return_object
 (
@@ -669,7 +669,7 @@ objcache_t *objcache_pcb_head;
 objcache_t *objcache_gen_head[7];    /* 8B to 1024B  */
 objcache_t *objcache_n4k_head;       /* near 4k      */
 
-/*- Object Cache 
+/*- Object Cache
  *--------------------------------------------------------*/
 
 int mm_init(uint32_t* modulep, void *physbase, void *physfree)

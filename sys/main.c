@@ -21,6 +21,11 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 
 	sched_init();
 
+	/* Now we are calling the main loop, and should never return */
+	scheduler();
+
+	k_printf(0, "Oops! Why are we here?!\n");
+
 	// kernel starts here
 	while(1);
 }

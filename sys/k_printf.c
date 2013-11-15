@@ -635,3 +635,12 @@ K_PRINTF_ERROR:
 
 }
 
+void panic(const char *s)
+{
+	k_puts(0, s);
+	k_putchar(0, '\n');
+
+	while (1)
+		;
+}
+/* vim: set ts=4 sw=0 tw=0 noet : */

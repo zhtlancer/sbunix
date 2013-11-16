@@ -55,10 +55,7 @@ void scheduler(void)
 {
 	/* FIXME: This is a swtch test, remove this */
 	{
-<<<<<<< HEAD
-		//volatile int d = 1;
-=======
->>>>>>> github/zhtao
+		volatile int d = 1;
 		pa->rip = (uint64_t)&a;
 
 		pb->rip = (uint64_t)&b;
@@ -66,10 +63,8 @@ void scheduler(void)
 		pb->rbx = 0;
 		pb->rsi = 0;
 		pb->rdi = 0;
-<<<<<<< HEAD
-		//while (d);
-=======
->>>>>>> github/zhtao
+
+		while (d);
 		swtch_to(pa);
 	}
 

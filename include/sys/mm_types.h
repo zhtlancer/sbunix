@@ -58,7 +58,7 @@ struct vma {
 typedef struct vma vma_t;
 
 
-/* mm_struct: 256 bytes */
+/* mm_struct: 128 bytes */
 struct mm_struct {
 
     vma_t	*mmap;		/* list of vma */
@@ -80,23 +80,6 @@ struct mm_struct {
     uint64_t	reserved16;
     uint64_t	reserved17;
 
-    uint64_t	reserved20;
-    uint64_t	reserved21;
-    uint64_t	reserved22;
-    uint64_t	reserved23;
-    uint64_t	reserved24;
-    uint64_t	reserved25;
-    uint64_t	reserved26;
-    uint64_t	reserved27;
-
-    uint64_t	reserved30;
-    uint64_t	reserved31;
-    uint64_t	reserved32;
-    uint64_t	reserved33;
-    uint64_t	reserved34;
-    uint64_t	reserved35;
-    uint64_t	reserved36;
-    uint64_t	reserved37;
 }__attribute__((packed));
 typedef struct mm_struct mm_struct_t;
 

@@ -64,8 +64,10 @@ mm_struct_new (
     uint64_t    bss_size   
 )
 {
-    addr_t  pgt_pa  = 0;
-	addr_t  addr    = 0;
+    addr_t  pgt_pa      = 0;
+	addr_t  addr        = 0;
+    vma_t   *vma_tmp    = NULL;
+    vma_t   *vma_current= NULL;
 
     mm_struct_t *mm_s   = (mm_struct_t *)(get_object( objcache_mm_struct_head ));
 
@@ -74,13 +76,26 @@ mm_struct_new (
     mm_s->data_start    = data_start;
     mm_s->data_end      = data_end  ;
 
-    mm_s->mmap          = (vma_t *)get_object( objcache_vma_head );
-	vma_set( mm_s->mmap      , code_start, code_end, NULL            , NULL,
+    /* setup vma for code */
+    vma_tmp             = (vma_t *)get_object( objcache_vma_head );
+	vma_set( vma_tmp, code_start, code_end         , NULL      , NULL,
              0, file, code_ofs, 0, 0 );
+    mm_s->mmap          = vma_tmp;
+    vma_current         = vma_tmp;
 
-    mm_s->mmap->next    = (vma_t *)get_object( objcache_vma_head );  
-	vma_set( mm_s->mmap->next, data_start, data_end, mm_s->mmap->next, NULL,
+    /* setup vma for data */
+    vma_tmp             = (vma_t *)get_object( objcache_vma_head );
+	vma_set( vma_tmp, data_start, data_end         , mm_s->mmap, vma_current,
              0, file, data_ofs, 0, 0 );
+    vma_current->next   = vma_tmp;
+    mm_s->mmap->prev    = vma_tmp;
+
+    /* setup vma for bss  */
+    vma_tmp             = (vma_t *)get_object( objcache_vma_head );
+	vma_set( vma_tmp, data_end  , data_end+bss_size, mm_s->mmap, vma_current,
+             0, file, data_ofs, 0, 0 );
+    vma_current->next   = vma_tmp;
+    mm_s->mmap->prev    = vma_tmp;
 
     /* setup page table */
 

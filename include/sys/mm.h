@@ -1,7 +1,9 @@
 #ifndef __MM_H__
 #define __MM_H__
 
+#include <defs.h>
 #include <sys/mm_types.h>
+#include <sys/mm_vma.h>
 
 #define __PAGE_SIZE_SHIFT           12
 #define __PAGE_SIZE_MASK            0xFFF
@@ -106,6 +108,7 @@ get_zeroed_page
 );
 
 
+/* set a     page table entry */
 int
 set_pgt_entry
 (
@@ -116,6 +119,19 @@ set_pgt_entry
     uint08_t    avl_1   ,
     uint16_t    avl_2   ,
     uint08_t    flag 
+);
+
+/* set a lv1 page table entry */
+int
+set_pgt_entry_lv1
+(
+    addr_t      entry   , /* entry in lv1 page table                */
+    uint64_t    paddr   , /* page table entry index/physical address*/
+    uint08_t    present , /* present bit                            */
+    uint08_t    nx      , /* nx bit                                 */
+    uint08_t    avl_1   , /* available to software                  */
+    uint16_t    avl_2   , /* available to software                  */
+    uint08_t    flag      /* flags                                  */
 );
 
 /* set a lv4 page table entry */
@@ -131,24 +147,13 @@ set_pgt_entry_lv4
     uint08_t    flag      /* flags                                  */
 );
 
+/* set a lv4 page table entry */
 pgt_t *
 get_pgt_entry_lv4
 (
     addr_t      addr      /* virtual address                        */
 );
 
-/* set a lv1 page table entry */
-int
-set_pgt_entry_lv1
-(
-    addr_t      entry   , /* entry in lv1 page table                */
-    uint64_t    paddr   , /* page table entry index/physical address*/
-    uint08_t    present , /* present bit                            */
-    uint08_t    nx      , /* nx bit                                 */
-    uint08_t    avl_1   , /* available to software                  */
-    uint16_t    avl_2   , /* available to software                  */
-    uint08_t    flag      /* flags                                  */
-);
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 +   Get/Free Pages
@@ -242,22 +247,6 @@ kfree
  *--------------------------------------------------------*/
 
 
-int
-set_vma
-(
-    vma_t       *vma_p      ,        
-    addr_t      vm_start    ,
-    addr_t      vm_end      ,
-    struct vma* next        ,
-    addr_t      anon_vma    ,
-    addr_t      file        ,
-    addr_t      ofs         , 
-    uint64_t    rsv_1       ,
-    uint64_t    rsv_2       ,
-    uint16_t    flag        
-);
-
-
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 + Object Cache
 */
@@ -282,16 +271,12 @@ return_object
 );
 
 /* lists of kernel object caches */
-extern objcache_t *objcache_vma_head;
 extern objcache_t *objcache_pcb_head;
 extern objcache_t *objcache_gen_head[7];    /* 16B to 1024B  */
 extern objcache_t *objcache_n4k_head;       /* near 4k      */
 
 /*- Object Cache 
  *--------------------------------------------------------*/
-
-extern vma_t kvma_head;
-extern uint64_t kvma_end;
 
 
 extern char kernmem;

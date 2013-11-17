@@ -8,7 +8,7 @@ uint32_t page_num;
 page_t *page_struct_begin;
 uint32_t page_index_begin;
 
-/* default page tables */
+/* default kernel page tables */
 addr_t def_pgt_paddr_lv1;
 addr_t def_pgt_paddr_lv2;
 addr_t def_pgt_paddr_lv3;
@@ -17,10 +17,6 @@ addr_t def_pgt_paddr_lv3;
 addr_t page_begin;
 addr_t page_begin_addr;
 
-
-/* first kernel vma */
-vma_t kvma_head;
-uint64_t kvma_end;
 
 /* =========================================================
  * Page Structure
@@ -508,42 +504,6 @@ kfree
  *--------------------------------------------------------*/
 
 
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-+   manipulate vma
-*/
-
-int
-set_vma
-(
-    vma_t       *vma_p      ,
-    addr_t      vm_start    ,
-    addr_t      vm_end      ,
-    struct vma* next        ,
-    addr_t      anon_vma    ,
-    addr_t      file        ,
-    addr_t      ofs         ,
-    uint64_t    rsv_1       ,
-    uint64_t    rsv_2       ,
-    uint16_t    flag
-)
-{
-    vma_p->vm_start = vm_start  ;
-    vma_p->vm_end   = vm_end    ;
-    vma_p->next     = next      ;
-    vma_p->anon_vma = anon_vma  ;
-    vma_p->file     = file      ;
-    vma_p->ofs      = ofs       ;
-    vma_p->rsv_1    = rsv_1     ;
-    vma_p->rsv_2    = rsv_2     ;
-    vma_p->flag     = flag      ;
-
-    return 0;
-}/* set_vma */
-
-
-/*- manipulate vma
- *--------------------------------------------------------*/
-
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 + Object Cache
@@ -664,7 +624,6 @@ return_object
 }/* return_object() */
 
 /* lists of kernel object caches */
-objcache_t *objcache_vma_head;
 objcache_t *objcache_pcb_head;
 objcache_t *objcache_gen_head[7];    /* 8B to 1024B  */
 objcache_t *objcache_n4k_head;       /* near 4k      */
@@ -792,8 +751,8 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	k_printf( 0, "find_free_page: %x\n", find_free_pages( 0x7bfe  ) );
 
 	kvma_end =(addr_t)&kernofs + 0x400000; /* FIXME: first 4MB mapped*/
-	set_vma( &kvma_head, (addr_t)&kernofs, kvma_end,
-			NULL, 0, 0, 0, 0, 0, 0 );
+	vma_set( &kvma_head, (addr_t)&kernofs, kvma_end,
+			NULL, NULL, 0, 0, 0, 0, 0 );
 
 	uint32_t reg_temp_lo;
 	uint32_t reg_temp_hi;
@@ -834,15 +793,14 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 
 	/* test objcache */
 
-	/* create object caches */
-
+	/* create kernel object caches */
 	for ( i=0; i<7; ++i )
-		objcache_gen_head[i] = create_objcache( 0x0, 1<<(i+4) );
+		objcache_gen_head[i]= create_objcache( 0x0, 1<<(i+4) );
+	objcache_n4k_head       = create_objcache( 0x0, __PAGE_SIZE - OBJCACHE_HEADER_SIZE );
+	objcache_vma_head       = create_objcache( 0x0, sizeof(vma_t) );
+    objcache_mm_struct_head = create_objcache( 0x0, sizeof(mm_struct_t) );
 
-	objcache_n4k_head = create_objcache( 0x0, __PAGE_SIZE - OBJCACHE_HEADER_SIZE );
 
-
-	objcache_vma_head = create_objcache( 0x0, sizeof(vma_t) );
 	if ( objcache_vma_head != NULL ) {
 		k_printf ( 0, "objcache vma_head addr: %p\n", objcache_vma_head );
 		k_printf ( 0, "kvma_end=%x\n", kvma_end );
@@ -852,8 +810,8 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 		vma_tmp1 = (vma_t *)(get_object( objcache_vma_head ));
 	}
 	k_printf ( 0, "vma_tmp1 addr: %p\n", vma_tmp1 );
-	set_vma( vma_tmp1, (addr_t)&kernofs, kvma_end,
-			NULL, 0, 0, 0, 0, 0, 0 );
+	vma_set( vma_tmp1, (addr_t)&kernofs, kvma_end,
+			NULL, NULL, 0, 0, 0, 0, 0 );
 	return_object( vma_tmp1 );
 	vma_tmp1 = (vma_t *)(get_object( objcache_vma_head ));
 
@@ -874,6 +832,32 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	//kfree( u64array );
 	for ( i=0; i<10; i++ )
 		k_printf( 0, "%d", *(u64array+i) );
+
+
+    /* mm_struct test */
+    mm_struct_t *proc1_mm = mm_struct_new(0x1000, 0x2000, 0x2000, 0x3000, 1, 0x0, 0x1000, 0x1000);
+
+    k_printf( 0, "proc1_mm->code_start = %x\n", proc1_mm->code_start );
+
+
+
+	/* pagefult test */
+
+	k_printf( 0, "\n\n", page_tmp->idx );
+ 
+	page_tmp = alloc_page( PG_SUP );
+	k_printf( 0, "alloc_page.index = %x\n", page_tmp->idx );
+	k_printf( 0, "alloc_page.va    = %x\n", page_tmp->va  );
+
+
+	temp = (uint64_t *)kvma_end-0x100;
+	*temp = 0xDEADBEEF;
+	k_printf ( 0, "*temp   =%x\n", *temp );
+	k_printf ( 0, "kvma_end=%x\n", kvma_end );
+
+	__free_pages( page_tmp, 0 );
+    
+	*temp = 0xDEADBEEF;
 
 	return 0;
 }

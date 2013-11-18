@@ -4,6 +4,7 @@
 #include <defs.h>
 #include <sys/mm_types.h>
 #include <sys/mm_vma.h>
+#include <sys/mm_page_table.h>
 
 #define __PAGE_SIZE_SHIFT           12
 #define __PAGE_SIZE_MASK            0xFFF
@@ -61,12 +62,12 @@ init_page
 
 
 
-/* Initialize page structure */
-int
-init_pgt
-(
-    addr_t      addr    /* the start physical address of page structure */
-);
+/* Initialize a page table */
+//int
+//init_pgt
+//(
+//    addr_t      addr    /* the start physical address of page structure */
+//);
 
 
 page_t *
@@ -105,53 +106,6 @@ void *
 get_zeroed_page
 (
     uint16_t    flag        
-);
-
-
-/* set a     page table entry */
-int
-set_pgt_entry
-(
-    addr_t      addr    ,
-    uint64_t    paddr   ,
-    uint08_t    present ,
-    uint08_t    nx      ,
-    uint08_t    avl_1   ,
-    uint16_t    avl_2   ,
-    uint08_t    flag 
-);
-
-/* set a lv1 page table entry */
-int
-set_pgt_entry_lv1
-(
-    addr_t      entry   , /* entry in lv1 page table                */
-    uint64_t    paddr   , /* page table entry index/physical address*/
-    uint08_t    present , /* present bit                            */
-    uint08_t    nx      , /* nx bit                                 */
-    uint08_t    avl_1   , /* available to software                  */
-    uint16_t    avl_2   , /* available to software                  */
-    uint08_t    flag      /* flags                                  */
-);
-
-/* set a lv4 page table entry */
-int
-set_pgt_entry_lv4
-(
-    addr_t      addr    , /* virtual address                        */
-    uint64_t    paddr   , /* page table entry index/physical address*/
-    uint08_t    present , /* present bit                            */
-    uint08_t    nx      , /* nx bit                                 */
-    uint08_t    avl_1   , /* available to software                  */
-    uint16_t    avl_2   , /* available to software                  */
-    uint08_t    flag      /* flags                                  */
-);
-
-/* set a lv4 page table entry */
-pgt_t *
-get_pgt_entry_lv4
-(
-    addr_t      addr      /* virtual address                        */
 );
 
 

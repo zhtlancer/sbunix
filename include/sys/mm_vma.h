@@ -7,9 +7,9 @@
 #include <sys/mm_types.h>
 
 
-/* --------------------------------------------------------
+/*-------------------------------------------------------------------------
  * Global Variable
- * --------------------------------------------------------
+ *-------------------------------------------------------------------------
  */
 
 /* kernal space vma */
@@ -21,11 +21,10 @@ extern objcache_t *objcache_vma_head;
 extern objcache_t *objcache_mm_struct_head;
 
 
-/* --------------------------------------------------------
+/*-------------------------------------------------------------------------
  * Function
- * --------------------------------------------------------
+ *-------------------------------------------------------------------------
  */
-
 
 int
 vma_set
@@ -33,13 +32,20 @@ vma_set
     vma_t       *vma_p      ,
     addr_t      vm_start    ,
     addr_t      vm_end      ,
-    struct vma* next        ,
-    struct vma* prev        ,
+    vma_t       *next       ,
+    vma_t       *prev       ,
     addr_t      anon_vma    ,
     addr_t      file        ,
     addr_t      ofs         ,
     uint64_t    rsv_1       ,
     uint16_t    flag
+);
+
+vma_t *
+vma_find
+(
+    vma_t       *vma_head       ,
+    void        *addr
 );
 
 
@@ -55,5 +61,9 @@ mm_struct_new (
     uint64_t    bss_size   
 );
 
+void
+mm_struct_free (
+    mm_struct_t *mm_s
+);
 
 #endif /* __MM_VMA_H__ */

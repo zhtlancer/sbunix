@@ -4,9 +4,9 @@
 #include <sys/k_stdio.h>
 
 
-/* --------------------------------------------------------
+/*-------------------------------------------------------------------------
  * Global Variable
- * --------------------------------------------------------
+ *-------------------------------------------------------------------------
  */
 
 /* kernal space vma */
@@ -18,19 +18,20 @@ objcache_t *objcache_vma_head;
 objcache_t *objcache_mm_struct_head;
 
 
-/* --------------------------------------------------------
+/*-------------------------------------------------------------------------
  * Function
- * --------------------------------------------------------
+ *-------------------------------------------------------------------------
  */
 
+/* setup a given vma */
 int
 vma_set
 (
     vma_t       *vma_p      ,
     addr_t      vm_start    ,
     addr_t      vm_end      ,
-    struct vma* next        ,
-    struct vma* prev        ,
+    vma_t       *next       ,
+    vma_t       *prev       ,
     addr_t      anon_vma    ,
     addr_t      file        ,
     addr_t      ofs         ,
@@ -49,9 +50,33 @@ vma_set
     vma_p->flag     = flag      ;
 
     return 0;
-}/* vma_set */
+}/* vma_set() */
 
 
+/* check if a virtual address within given vma list */
+/* FIXME: not test yet */
+vma_t *
+vma_find
+(
+    vma_t       *vma_head       ,
+    void        *va
+)
+{
+    vma_t       *vma_tmp    = NULL;
+    addr_t      vaddr       = (addr_t)(va);
+
+    for ( vma_tmp = vma_head->next; vma_tmp != vma_head; vma_tmp = vma_tmp->next )
+        if ( vaddr >= vma_tmp->vm_start && vaddr < vma_tmp->vm_start )
+            return vma_tmp;
+
+    return NULL;
+
+} /* vma_find() */
+
+
+
+/* create a new mm_struct for a process */
+/* FIXME: not test yet */
 mm_struct_t *
 mm_struct_new (
     addr_t      code_start      ,
@@ -114,5 +139,16 @@ mm_struct_new (
 			0x0, 0x0, PGT_RW | PGT_SUP );
 
     return mm_s;
-}
+} /* mm_struct_new() */
+
+
+/* free a mm_struct */
+/* FIXME: not test yet */
+void
+mm_struct_free (
+    mm_struct_t *mm_s
+)
+{
+    /* FIXME: should free a mm_struct and all things inside it properly */ 
+} /* mm_struct_free() */
 

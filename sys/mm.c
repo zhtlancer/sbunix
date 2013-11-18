@@ -3,10 +3,10 @@
 #include <sys/mm.h>
 #include <sys/k_stdio.h>
 
-uint32_t page_num;
+uint32_t page_num;          /* total number of physical pages (4k each) */
 
-page_t *page_struct_begin;
-uint32_t page_index_begin;
+page_t *page_struct_begin;  /* point to the first page structure */
+uint32_t page_index_begin;  /* beginnig of the page index */
 
 /* default kernel page tables */
 addr_t def_pgt_paddr_lv1;
@@ -158,112 +158,6 @@ find_free_pages
 }/* find_free_page */
 
 
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-+   Get/Set Page Table Entry
-*/
-
-/* initialize a page table */
-int
-init_pgt
-(
-    addr_t      addr        /* page table virtual address */
-)
-{
-    int i;
-    volatile pgt_t *pgt_temp;
-    for ( i=0; i<PGT_ENTRY_NUM; ++i ) {
-        pgt_temp = (volatile void *)(addr+(i*8));
-        pgt_temp->paddr     = 0x0   ;
-        pgt_temp->present   = PGT_NP;
-        pgt_temp->nx        = PGT_NX;
-        pgt_temp->avl_1     = 0x0   ;
-        pgt_temp->avl_2     = 0x0   ;
-        pgt_temp->flag      = PGT_RO | PGT_SUP;
-    }
-    return 0;
-}/* init_pgt */
-
-
-/* set a page table entry */
-int
-set_pgt_entry
-(
-    addr_t      addr    , /* page table virtual address             */
-    uint64_t    paddr   , /* page table entry index/physical address*/
-    uint08_t    present , /* present bit                            */
-    uint08_t    nx      , /* nx bit                                 */
-    uint08_t    avl_1   , /* available to software                  */
-    uint16_t    avl_2   , /* available to software                  */
-    uint08_t    flag      /* flags                                  */
-)
-{
-    volatile pgt_t *pgt_temp   = (volatile void *)(addr);
-
-    pgt_temp->paddr     = paddr>>__PAGE_SIZE_SHIFT;
-    pgt_temp->present   = present;
-    pgt_temp->nx        = nx     ;
-    pgt_temp->avl_1     = avl_1  ;
-    pgt_temp->avl_2     = avl_2  ;
-    pgt_temp->flag      = flag   ;
-
-    return 0;
-}/* set_pgt_entry */
-
-
-/* set a lv4 page table entry */
-int
-set_pgt_entry_lv4
-(
-    addr_t      addr    , /* virtual address                        */
-    uint64_t    paddr   , /* page table entry index/physical address*/
-    uint08_t    present , /* present bit                            */
-    uint08_t    nx      , /* nx bit                                 */
-    uint08_t    avl_1   , /* available to software                  */
-    uint16_t    avl_2   , /* available to software                  */
-    uint08_t    flag      /* flags                                  */
-)
-{
-    addr_t addr_tmp = 0xFFFF000000000000 | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<39);
-    addr_tmp = addr_tmp | ((addr>>9)&0x7FFFFFFFFF);
-    return set_pgt_entry( addr_tmp, paddr, present, nx, avl_1, avl_2, flag );
-}/* set_pgt_entry_lv4 */
-
-/* get a lv4 page table entry */
-pgt_t *
-get_pgt_entry_lv4
-(
-    addr_t      addr      /* virtual address                        */
-)
-{
-    addr_t addr_tmp = 0xFFFF000000000000 | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<39);
-    addr_tmp = addr_tmp | ((addr>>9)&0x7FFFFFFFFF);
-    return (pgt_t *)addr_tmp;
-}/* get_pgt_entry_lv4 */
-
-/* set a lv1 page table entry */
-int
-set_pgt_entry_lv1
-(
-    addr_t      entry   , /* entry in lv1 page table                */
-    uint64_t    paddr   , /* page table entry index/physical address*/
-    uint08_t    present , /* present bit                            */
-    uint08_t    nx      , /* nx bit                                 */
-    uint08_t    avl_1   , /* available to software                  */
-    uint16_t    avl_2   , /* available to software                  */
-    uint08_t    flag      /* flags                                  */
-)
-{
-    addr_t addr_tmp = 0xFFFF000000000000
-                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<39)
-                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<30)
-                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<21)
-                      | ((uint64_t)PGT_ENTRY_LV1_SELFREF<<12);
-    addr_tmp = addr_tmp | entry<<3;
-    return set_pgt_entry( addr_tmp, paddr, present, nx, avl_1, avl_2, flag );
-}/* set_pgt_entry_lv1 */
-
-/*- Get/Set Page Table Entry
- *--------------------------------------------------------*/
 
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -497,9 +391,6 @@ kfree
     }
 }
 
-
-
-
 /*- malloc/free
  *--------------------------------------------------------*/
 
@@ -608,6 +499,7 @@ get_object
     return (void *)obj_addr;
 } /* get_object() */
 
+
 void
 return_object
 (
@@ -638,14 +530,20 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 		uint32_t type;
 	}__attribute__((packed)) *smap;
 
-	uint64_t mem_length = 0;
-	uint64_t page_struct_size = 0;
-	uint64_t page_struct_page = 0;
 
-	uint32_t kernel_page_num = 0;
+	uint64_t    mem_length         = 0; /* length of usable memory */
+	uint64_t    page_struct_size   = 0;
+	uint64_t    page_struct_page   = 0;
+	uint32_t    kernel_page_num    = 0;
+	addr_t      addr;
 
-	addr_t addr;
+	page_index_begin = 0;
 
+
+    /*---------------------------------------
+	 * calculate memory and page information
+     *---------------------------------------
+     */
 
 	while(modulep[0] != 0x9001)
 		modulep += modulep[1]+2;
@@ -653,16 +551,21 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	k_printf( 0, "modulep : %x\n", modulep );
 	k_printf( 0, "physbase: %x\n", physbase);
 	k_printf( 0, "physfree: %x\n", physfree);
-	page_index_begin = 0;
 	for(smap = (struct smap_t*)(modulep+2); smap < (struct smap_t*)((char*)modulep+modulep[1]+2*4); ++smap) {
 		if (smap->type == 1 /* memory */ && smap->length != 0) {
 			k_printf( 0, "Available Physical Memory [%x-%x]\n", smap->base, smap->base + smap->length);
-			mem_length = smap->length;
-			page_num   = mem_length>>__PAGE_SIZE_SHIFT;
-			page_index_begin = (uint32_t)((smap->base)>>__PAGE_SIZE_SHIFT);
-			kernel_page_num = (uint32_t)((uint64_t)physfree>>__PAGE_SIZE_SHIFT)-page_index_begin;
+			mem_length          = smap->length;
+			page_num            = mem_length>>__PAGE_SIZE_SHIFT;
+			page_index_begin    = (uint32_t)((smap->base)>>__PAGE_SIZE_SHIFT);
+			kernel_page_num     = (uint32_t)((uint64_t)physfree>>__PAGE_SIZE_SHIFT)-page_index_begin;
 		}
 	}
+
+    /* By observation, we know that physical memory start from 0x100000 (1MB),
+         which is 256 (0x100) 4k pages.
+         We let the beginning of page_index equal to 0x100 for the convenience to 
+         calculate the physical address of a page using its page structure
+    */
 
 	k_printf( 0, "memsize : %x\n", mem_length );
 	k_printf( 0, "pagenum : %x\n", page_num   );
@@ -670,33 +573,43 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	k_printf( 0, "pg idx begin: %x\n", page_index_begin );
 	k_printf( 0, "k  page num : %x\n", kernel_page_num  );
 
+    /* calculate total size and pages for page structures */
 	page_struct_size = (mem_length>>__PAGE_SIZE_SHIFT)<<__PAGE_STRUCT_SIZE_SHIFT;
 	page_struct_page = (page_struct_size>>__PAGE_SIZE_SHIFT)+( (page_struct_size&__PAGE_SIZE_MASK)?1:0);
 
 	k_printf( 0, "pg stru size: %x\n", page_struct_size );
 	k_printf( 0, "pg stru page: %x\n", (page_struct_size>>__PAGE_SIZE_SHIFT)+( (page_struct_size&__PAGE_SIZE_MASK)?1:0) );
 
-	/* important */
+    /* calculate where to start locate page structures*/
 	page_struct_begin = (page_t *)(((addr_t)&kernofs)+physfree);
 	k_printf( 0, "pg stru begin: %p\n", page_struct_begin);
 
+    /* calculate the address start of free pages. FIXME: variable not used */
 	page_begin_addr = (addr_t)page_struct_begin + (page_struct_page<<__PAGE_SIZE_SHIFT);
-	kvma_end        = page_begin_addr; /* important */
 
-	k_printf( 0, "pg begin addr: %p\n", page_begin_addr);
-
+    /* calculate the         start of free pages. FIXME: variable not used */
 	page_begin      = page_begin_addr>>__PAGE_SIZE_SHIFT;
 	k_printf( 0, "pg begin     : %p\n", page_begin     );
 
-	def_pgt_paddr_lv1 = (addr_t)physbase  - __PAGE_SIZE ;
+    /* set the end of kernel memory space to the start of free pages: FIXME: value not used */
+	kvma_end        = page_begin_addr;
+	k_printf( 0, "pg begin addr: %p\n", page_begin_addr);
+
+
+    /*---------------------------------------
+	 * initialize default kernel space page tables
+     *---------------------------------------
+     */
+
+	def_pgt_paddr_lv1 = (addr_t)physbase  - __PAGE_SIZE;
 	def_pgt_paddr_lv2 = def_pgt_paddr_lv1 - __PAGE_SIZE;
 	def_pgt_paddr_lv3 = def_pgt_paddr_lv2 - __PAGE_SIZE;
+    /*  other lv4 kernel page tables start from 0x100000 */
 
 	k_printf( 0, "default lv1 page table phy addr: %x\n", def_pgt_paddr_lv1 );
 	k_printf( 0, "default lv2 page table phy addr: %x\n", def_pgt_paddr_lv2 );
 	k_printf( 0, "default lv3 page table phy addr: %x\n", def_pgt_paddr_lv3 );
 
-	/* initialize  default page tables */
 	int i;
 	init_pgt( def_pgt_paddr_lv1 );
 	init_pgt( def_pgt_paddr_lv2 );
@@ -705,20 +618,23 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 		init_pgt( 0x100000+(i*__PAGE_SIZE) );
 	}
 
-	/* set lv1 page table entry: self-reference entry */
+	/* set lv1 page table entry: kernel page table: self-reference entry */
 	addr = ( (addr_t)&kernofs | def_pgt_paddr_lv1 ) + (8*PGT_ENTRY_LV1_SELFREF);
 	set_pgt_entry( addr, def_pgt_paddr_lv1, PGT_P, PGT_EXE,
 			0x0, 0x0, PGT_RW | PGT_SUP );
 
-	/* set lv1 page table entry: kernel page */
+	/* set lv1 page table entry: kernel page table to lv2 */
 	addr = ( (addr_t)&kernofs | def_pgt_paddr_lv1 ) + (8*PGT_ENTRY_LV1_KERNEL );
 	set_pgt_entry( addr, def_pgt_paddr_lv2, PGT_P, PGT_EXE,
 			0x0, 0x0, PGT_RW | PGT_SUP );
 
-	/* set lv2 page table entry: kernel page */
+	/* set lv2 page table entry: kernel page table to lv3 */
 	addr = ( (addr_t)&kernofs | def_pgt_paddr_lv2 ) + (8*PGT_ENTRY_LV2_KERNEL );
 	set_pgt_entry( addr, def_pgt_paddr_lv3, PGT_P, PGT_EXE,
 			0x0, 0x0, PGT_RW | PGT_SUP );
+
+    /* for convenience, we give the kernel a fixed size memory using 2M pages,
+         so each 2M pages counts as 512 (0x200) 4k pages */
 
 	/* set lv3 page table entry: kernel page:2M:0x00000-0x1FFFFF */
 	addr = ( (addr_t)&kernofs | def_pgt_paddr_lv3 ) + (8*  0);
@@ -730,7 +646,7 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	set_pgt_entry( addr, 0x200000, PGT_P, PGT_EXE,
 			0x0, 0x0, PGT_RW | PGT_SUP | PGT_PS );
 
-	/* set other lv3 page table entries: kernel page: 4K */
+	/* set lv3 page table entry: kernel page table to lv4 */
 	int j = 0;
 	for ( i=2; i<(0x100000/__PAGE_SIZE)-3; ++i, ++j ) {
 		addr = ( (addr_t)&kernofs | def_pgt_paddr_lv3 ) + (8*i);
@@ -738,22 +654,34 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 				0x0, 0x0, PGT_RW | PGT_SUP );
 	}
 
-	/* load default CR3 */
+	/* load default kernel space CR3 */
 	asm volatile("movq %0, %%cr3":: "b"((void *)def_pgt_paddr_lv1));
+
 
 	k_printf( 0, "After reload CR3\n" );
 
-	/* init page structure */
-	//init_page( kernel_page_num );
-	init_page( 0x300 ); /* FIXME: First 4MB mapped */
 
-	k_printf( 0, "find_free_page: %x\n", find_free_pages( 0x7bff  ) );
-	k_printf( 0, "find_free_page: %x\n", find_free_pages( 0x7bfe  ) );
+    /*---------------------------------------
+	 * initialize page structures
+     *---------------------------------------
+     */
 
-	kvma_end =(addr_t)&kernofs + 0x400000; /* FIXME: first 4MB mapped*/
+    /* For convenience, we give the kernel a fixed size memory using 2M pages,
+         so each 2M pages counts as 512 (0x200) 4k pages.
+         For example, we give the kernel 4M memory start from 0x0,
+         which is equal to 0x400 4k pages. Since the index of page structure is 
+         start from 0x100 (because useable memory is start from 0x100000,) we 
+         mark the first 0x300 pages as occupied (by the kernel.) */
+   
+	/* init_page( kernel_page_num ); */
+	init_page( 0x300 ); /* FIXME: first 4MB already mapped to kernel */
+
+    /* set kernel vma FIXME: not used */
+	kvma_end =(addr_t)&kernofs + 0x400000; /* FIXME: first 4MB already mapped to kernel */  
 	vma_set( &kvma_head, (addr_t)&kernofs, kvma_end,
 			NULL, NULL, 0, 0, 0, 0, 0 );
 
+    /* read/write MSR register */
 	uint32_t reg_temp_lo;
 	uint32_t reg_temp_hi;
 	asm volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
@@ -762,6 +690,32 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	asm volatile("wrmsr" : : "a"(reg_temp_lo), "d"(reg_temp_hi),  "c"(0xC0000080));
 	asm volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
 	k_printf ( 0, "efer_hi=%X", ((uint64_t)reg_temp_hi<<32)+reg_temp_lo );
+
+
+    /*---------------------------------------
+	 * create kernel object caches
+     *---------------------------------------
+     */
+
+	/* object caches for kmalloc() */
+	for ( i=0; i<7; ++i )
+		objcache_gen_head[i]= create_objcache( 0x0, 1<<(i+4) );
+	objcache_n4k_head       = create_objcache( 0x0, __PAGE_SIZE - OBJCACHE_HEADER_SIZE );
+
+	/* object caches for other kernel structures */
+	objcache_vma_head       = create_objcache( 0x0, sizeof(vma_t) );
+    objcache_mm_struct_head = create_objcache( 0x0, sizeof(mm_struct_t) );
+
+
+
+
+    /*---------------------------------------
+     * TEST: allocate/free pages
+     *---------------------------------------
+     */
+
+	k_printf( 0, "find_free_page: %x\n", find_free_pages( 0x7bff  ) );
+	k_printf( 0, "find_free_page: %x\n", find_free_pages( 0x7bfe  ) );
 
 	page_t *page_tmp = alloc_page( PG_SUP );
 	k_printf( 0, "alloc_page.index = %x\n", page_tmp->idx );
@@ -788,18 +742,13 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	k_printf ( 0, "*temp   =%x\n", *temp );
 	k_printf ( 0, "kvma_end=%x\n", kvma_end );
 
-	set_pgt_entry_lv1( PGT_ENTRY_LV1_SELFREF, def_pgt_paddr_lv1, PGT_P, PGT_NX,
-			0x0, 0x0, PGT_RW | PGT_SUP );
 
-	/* test objcache */
+#if 0 /* begin of test codes */
 
-	/* create kernel object caches */
-	for ( i=0; i<7; ++i )
-		objcache_gen_head[i]= create_objcache( 0x0, 1<<(i+4) );
-	objcache_n4k_head       = create_objcache( 0x0, __PAGE_SIZE - OBJCACHE_HEADER_SIZE );
-	objcache_vma_head       = create_objcache( 0x0, sizeof(vma_t) );
-    objcache_mm_struct_head = create_objcache( 0x0, sizeof(mm_struct_t) );
-
+    /*---------------------------------------
+     * TEST: get/return object caches
+     *---------------------------------------
+     */
 
 	if ( objcache_vma_head != NULL ) {
 		k_printf ( 0, "objcache vma_head addr: %p\n", objcache_vma_head );
@@ -834,14 +783,21 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 		k_printf( 0, "%d", *(u64array+i) );
 
 
-    /* mm_struct test */
+    /*---------------------------------------
+     * TEST: mm_struct
+     *---------------------------------------
+     */
+
     mm_struct_t *proc1_mm = mm_struct_new(0x1000, 0x2000, 0x2000, 0x3000, 1, 0x0, 0x1000, 0x1000);
 
     k_printf( 0, "proc1_mm->code_start = %x\n", proc1_mm->code_start );
 
 
+    /*---------------------------------------
+     * TEST: page_fault
+     *---------------------------------------
+     */
 
-	/* pagefult test */
 
 	k_printf( 0, "\n\n", page_tmp->idx );
  
@@ -858,6 +814,8 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	__free_pages( page_tmp, 0 );
     
 	*temp = 0xDEADBEEF;
+
+#endif /* end of test codes */
 
 	return 0;
 }

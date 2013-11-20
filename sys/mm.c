@@ -81,9 +81,10 @@ get_page_from_va
 )
 {
     pgt_t *pgt_tmp = get_pgt_entry_lv4( (addr_t)va );
-    uint64_t page_idx = (uint64_t)pgt_tmp->paddr-(uint64_t)page_index_begin;
+    uint64_t page_idx = (uint64_t)(pgt_tmp->paddr)-(uint64_t)page_index_begin;
     return (page_struct_begin+page_idx);
 }/* get_page_from_va() */
+
 
 
 /* FIXME: should be deprecated in the future */
@@ -105,6 +106,18 @@ get_pa_from_page
 {
     return (page->idx)<<__PAGE_SIZE_SHIFT;
 }/* get_pa_from_page() */
+
+
+page_t *
+get_page_from_pgt
+(
+    pgt_t   *pgt_tmp
+)
+{
+    uint64_t page_idx = (uint64_t)(pgt_tmp->paddr)-(uint64_t)page_index_begin;
+    return (page_struct_begin+page_idx);
+} /* get_page_from_pa() */
+
 
 
 addr_t

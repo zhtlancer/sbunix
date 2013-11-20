@@ -89,6 +89,13 @@ get_pa_from_page
 );
 
 
+page_t *
+get_page_from_pgt
+(
+    pgt_t   *pgt_tmp
+);
+
+
 addr_t
 get_pa_from_va
 (

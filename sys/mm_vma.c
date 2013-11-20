@@ -54,7 +54,7 @@ vma_set
 
 
 /* check if a virtual address within given vma list */
-/* FIXME: not test yet */
+/* FIXME: not tested yet */
 vma_t *
 vma_find
 (
@@ -76,7 +76,7 @@ vma_find
 
 
 /* create a new mm_struct for a process */
-/* FIXME: not test yet */
+/* FIXME: not tested yet */
 mm_struct_t *
 mm_struct_new (
     addr_t      code_start      ,
@@ -124,7 +124,7 @@ mm_struct_new (
 
     /* setup page table */
 
-    mm_s->pgt   = get_zeroed_page( PG_SUP );
+    mm_s->pgt   = get_zeroed_page( PG_PGT | PG_SUP | PG_OCP );
     pgt_pa      = get_pa_from_va( mm_s->pgt );
     init_pgt( (addr_t)(mm_s->pgt) );
 
@@ -143,7 +143,7 @@ mm_struct_new (
 
 
 /* free a mm_struct */
-/* FIXME: not test yet */
+/* FIXME: not tested yet */
 void
 mm_struct_free (
     mm_struct_t *mm_s

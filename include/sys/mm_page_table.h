@@ -20,7 +20,7 @@ init_pgt
 );
 
 
-/* set a page table entry */
+/* set a page table entry using VA */
 int
 set_pgt_entry
 (
@@ -31,6 +31,43 @@ set_pgt_entry
     uint08_t    avl_1   ,
     uint16_t    avl_2   ,
     uint08_t    flag 
+);
+
+/* get a page table entry using VA */
+pgt_t *
+get_pgt_entry
+(
+    addr_t      va
+);
+
+
+/* map a page using self-reference technique */
+int
+map_page_self (
+    addr_t      addr    , /* virtual address                                */
+    uint08_t    newpage , /* 1-> mape a new page; 0-> mape above PA         */  
+    addr_t      paddr   , /* page PA  which will be mapped to VA            */ 
+    uint08_t    flag    , /* for page            : flags for page           */
+    uint08_t    nx      , /* for page table entry: nx bit                   */
+    uint08_t    avl_1   , /* for page table entry: available to software    */
+    uint16_t    avl_2   , /* for page table entry: available to software    */
+    uint08_t    flag_pgt  /* for page table entry: flags for page table     */
+);
+
+
+/* map a new page for another process */
+/* FIXME: not tested yet */
+int
+map_page (
+    pgt_t       *pgt_lv1, /* top level page table start                     */
+    addr_t      addr    , /* va to be mapped to                             */
+    uint08_t    newpage , /* 1-> mape a new page; 0-> mape above PA         */  
+    addr_t      paddr   , /* page PA  which will be mapped to VA            */ 
+    uint08_t    flag    , /* for page            : flags for page           */
+    uint08_t    nx      , /* for page table entry: nx bit                   */
+    uint08_t    avl_1   , /* for page table entry: available to software    */
+    uint16_t    avl_2   , /* for page table entry: available to software    */
+    uint08_t    flag_pgt  /* for page table entry: flags for page table     */
 );
 
 
@@ -116,7 +153,7 @@ set_pgt_entry_lv1
 
 /* get a lv1 page table entry */
 pgt_t *
-get_pgt_entry_lv2
+get_pgt_entry_lv1
 (
     addr_t      addr      /* virtual address                        */
 );

@@ -1,8 +1,10 @@
 #ifndef _TARFS_H
 #define _TARFS_H
 
-extern char _begin_tarfs_begin;
-extern char _begin_tarfs_end;
+#include <defs.h>
+
+extern char _binary_tarfs_start;
+extern char _binary_tarfs_end;
 
 struct posix_header_ustar {
 	char name[100];
@@ -24,4 +26,30 @@ struct posix_header_ustar {
 	char pad[12];
 };
 
+struct tarfs_file {
+	struct posix_header_ustar *_header;
+	uint64_t size;
+	uint8_t *_ptr;
+	uint8_t *_end;
+};
+
+typedef struct tarfs_file TAR_FILE;
+
+int tarfs_init(void);
+
+TAR_FILE *tarfs_fopen(const char *name);
+
+size_t tarfs_fread(void *ptr, size_t size, size_t nmemb, TAR_FILE *fp);
+
+enum TARFS_SEEK {
+	TARFS_SEEK_SET = 0,
+	TARFS_SEEK_CUR = 1,
+	TARFS_SEEK_END = 2
+};
+
+int tarfs_fseek(TAR_FILE *fp, long offset, int whence);
+
+void tarfs_close(TAR_FILE *fp);
+
 #endif
+/* vim: set ts=4 sw=0 tw=0 noet : */

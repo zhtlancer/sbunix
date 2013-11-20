@@ -54,7 +54,7 @@ int sched_init(void)
 void scheduler(void)
 {
 	/* FIXME: This is a swtch test, remove this */
-	{
+	if (0) {
 		pa->rip = (uint64_t)&a;
 
 		pb->rip = (uint64_t)&b;
@@ -96,9 +96,14 @@ struct task_struct *alloc_task(void)
 		panic("Cannot allocate new PID for new process!");
 	}
 
+	/* Set its state as newly created */
+	task->state = TASK_EMBRYO;
+
 	/* Unlock task_table if it has lock */
 
-	task->state = TASK_EMBRYO;
+	/* Allocate kernel stack for it */
+
+	/* Initialize vm space for it */
 
 	return task;
 }

@@ -6,6 +6,7 @@
 #include <sys/pit.h>
 #include <sys/k_stdio.h>
 #include <sys/sched.h>
+#include <sys/tarfs.h>
 
 #include <sys/mm.h>
 
@@ -20,6 +21,8 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	__asm__("sti");
 
 	sched_init();
+
+	tarfs_init();
 
 	/* Now we are calling the main loop, and should never return */
 	scheduler();

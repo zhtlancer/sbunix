@@ -35,6 +35,7 @@ static inline struct posix_header_ustar *tarfs_next_header(void *ptr, size_t siz
 	return ptr + ((size + TARFS_BLOCK_SIZE - 1)/TARFS_BLOCK_SIZE + 1) * TARFS_BLOCK_SIZE;
 }
 
+#if DEBUG_TARFS
 /* FIXME: Remove the test code */
 static void tarfs_test()
 {
@@ -63,10 +64,13 @@ static void tarfs_test()
 
 	return;
 }
+#endif
 
 int tarfs_init()
 {
+#if DEBUG_TARFS
 	tarfs_test();
+#endif
 
 	return 0;
 }

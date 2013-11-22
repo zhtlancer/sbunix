@@ -47,12 +47,30 @@ int sched_init(void)
 	return 0;
 }
 
+#if DEBUG_SCHED
+void usermode()
+{
+	for ( ; ; )
+		;
+}
+
+static void sched_test()
+{
+	volatile int d=1;
+	while (d);
+	_jump_to_usermode(usermode);
+}
+#endif
+
 /*
  * The main loop for SBUNIX
  * this function should never return
  */
 void scheduler(void)
 {
+#if DEBUG_SCHED
+	sched_test();
+#endif
 	/* FIXME: This is a swtch test, remove this */
 	if (0) {
 		pa->rip = (uint64_t)&a;

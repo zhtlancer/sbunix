@@ -58,5 +58,7 @@ void swtch(struct context **old, struct context *new);
 
 void swtch_to(struct context *new);
 
+void _jump_to_usermode(void *func);
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

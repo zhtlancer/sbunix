@@ -75,6 +75,7 @@ submitxxx: clean
 clean:
 	find $(ROOTLIB) $(ROOTBIN) -type f ! -name .empty -print -delete
 	rm -rfv obj kernel $(ROOTBOOT)/kernel/kernel
+	rm -rf *.iso *.img
 
 all: $(USER).iso
 new: clean all
@@ -88,6 +89,7 @@ rg:
 g:
 	gdb kernel 
 
-nr: clean all r
-nrg: clean all rg
+n: new
+nr: n r
+nrg: n rg
 #	/usr/bin/gdb kernel 

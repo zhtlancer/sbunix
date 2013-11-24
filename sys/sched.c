@@ -74,12 +74,12 @@ void scheduler(void)
 	/* FIXME: This is a swtch test, remove this */
 	if (0) {
 		pa->rip = (uint64_t)&a;
-
 		pb->rip = (uint64_t)&b;
 		pb->rax = 0;
 		pb->rbx = 0;
 		pb->rsi = 0;
 		pb->rdi = 0;
+
 		swtch_to(pa);
 	}
 

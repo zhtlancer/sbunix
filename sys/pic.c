@@ -71,24 +71,41 @@ void PIC_remap(int offset1, int offset2)
 /* FIXME: maybe we can change to pass these entries by a registration function */
 extern void isr_pit();
 extern void isr_kbd();
+extern void isr_page_fault();
+
 uint64_t current_irq;
+
 void isr_common(uint64_t irq)
 {
 	current_irq = irq;
-	if (irq == 32)
-		isr_pit();
-	if (irq == 33)
-		isr_kbd();
+
+	if (irq == 14) isr_page_fault();
+	if (irq == 32) isr_pit();
+	if (irq == 33) isr_kbd();
 } 
 
+extern void x86_64_asm_irq_14();
 extern void x86_64_asm_irq_32();
 extern void x86_64_asm_irq_33();
+
 
 int idt_setup(void)
 {
     int_gate_t *pit_int_gate;
 	uint64_t isr_addr;
 
+	/* Page Fault */
+    pit_int_gate = (void *)(&idt[2*14]);
+    isr_addr = (uint64_t)(&x86_64_asm_irq_14);
+    pit_int_gate->offsetLo  = (uint16_t)(isr_addr&0xFFFF); 
+    pit_int_gate->segSel    = (uint16_t)0x8; 
+    pit_int_gate->attr      = (uint16_t)(TYPE_IG64|DESC_P|DESC_DPL0); 
+    pit_int_gate->offsetMi  = (uint16_t)((isr_addr>>16)&0xFFFF); 
+    pit_int_gate->offsetHi  = (uint32_t)((isr_addr>>32)&0xFFFFFFFF); 
+    pit_int_gate->resZero   = (uint32_t)0;
+
+
+	/* PIT */
     pit_int_gate = (void *)(&idt[2*32]);
     isr_addr = (uint64_t)(&x86_64_asm_irq_32);
     pit_int_gate->offsetLo  = (uint16_t)(isr_addr&0xFFFF); 
@@ -98,6 +115,7 @@ int idt_setup(void)
     pit_int_gate->offsetHi  = (uint32_t)((isr_addr>>32)&0xFFFFFFFF); 
     pit_int_gate->resZero   = (uint32_t)0;
 
+	/* keyboard */
     pit_int_gate = (void *)(&idt[2*33]);
     isr_addr = (uint64_t)(&x86_64_asm_irq_33);
     pit_int_gate->offsetLo  = (uint16_t)(isr_addr&0xFFFF); 
@@ -112,7 +130,7 @@ int idt_setup(void)
 
 int pic_init(void)
 {
-    PIC_remap( 0x20, 0x28 );
+    PIC_remap( 32, 40 ); /* 0x20, 0x28 */
 	
 	return 0;
 }

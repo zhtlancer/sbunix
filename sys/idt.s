@@ -12,6 +12,12 @@ _x86_64_asm_lidt:
 	retq
 
 
+.global x86_64_asm_irq_14
+x86_64_asm_irq_14:
+    pushq   $14
+    pushq   %rdi
+    movabsq $._x86_64_asm_irq_common, %rdi   
+    jmpq    *%rdi
 
 .global x86_64_asm_irq_32
 x86_64_asm_irq_32:

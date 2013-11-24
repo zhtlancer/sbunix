@@ -82,3 +82,4 @@ void reload_idt() {
  * Load CR3
  *----------------------------*/
 
+/* vim: set ts=4 sw=0 tw=0 noet : */

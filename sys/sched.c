@@ -1,6 +1,7 @@
 #include <sys/sched.h>
 #include <sys/k_stdio.h>
 #include <sys/string.h>
+#include <sys/mm_vma.h>
 
 struct {
 	/* FIXME: maybe we need a lock to protect this */
@@ -118,6 +119,9 @@ struct task_struct *alloc_task(void)
 	task->state = TASK_EMBRYO;
 
 	/* Unlock task_table if it has lock */
+
+	/* Allocate mm_struct for this process */
+	/*task->mm = mm_struct_new();*/
 
 	/* Allocate kernel stack for it */
 

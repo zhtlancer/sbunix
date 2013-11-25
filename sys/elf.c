@@ -3,6 +3,11 @@
 #include <sys/tarfs.h>
 #include <sys/k_stdio.h>
 
+#include <sys/mm.h>
+#include <sys/mm_types.h>
+#include <sys/mm_page_table.h>
+#include <sys/sched.h>
+
 static int verify_elf(struct elf64_header *hdr)
 {
 	return *(elf_magic_t *)hdr != ELF_MAGIC;
@@ -57,6 +62,19 @@ int parse_elf_executable(const char *name)
 		k_printf(1, "memsz: %x ", phdr[i].memsz);
 		k_printf(1, "align: %x ", phdr[i].align);
 		k_printf(1, "\n");
+	}
+
+	{
+		volatile int d = 1;
+		uint32_t *temp = (uint32_t *)phdr[0].vaddr;
+		while (d);
+		map_page_self(phdr[0].vaddr, 1, 0, PG_USR | PGT_RW | PGT_EXE, 0, 0, 0, PGT_RW | PGT_EXE | PGT_USR);
+		temp[0] = 0xdeadbeef;
+		k_printf(1, "%x\n", temp[0]);
+		tarfs_fseek(fp, phdr[0].offset, TARFS_SEEK_SET);
+		tarfs_fread((void *)phdr[0].vaddr, 1, phdr[0].filesz, fp);
+		while (d);
+		_jump_to_usermode((void *)0x4000B0);
 	}
 
 	return 0;

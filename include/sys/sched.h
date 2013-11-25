@@ -37,8 +37,10 @@ struct task_struct {
 	/* Parent process */
 	struct task_struct *parent;
 
-	/* Saved CR3 register */
-	pgt_t cr3;
+	mm_struct_t *mm;
+
+	/* Saved CR3 register (PA to page table)*/
+	addr_t cr3;
 
 	/* Saved context for this process (userspace stack) */
 	struct context *context;

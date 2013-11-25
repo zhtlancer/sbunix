@@ -126,7 +126,7 @@ mm_struct_new (
 
     mm_s->pgt   = get_zeroed_page( PG_PGT | PG_SUP | PG_OCP );
     pgt_pa      = get_pa_from_va( mm_s->pgt );
-    init_pgt( (addr_t)(mm_s->pgt) );
+    init_pgt( (mm_s->pgt) );
 
 	/* set lv1 page table entry: self-reference entry */
 	addr = ((addr_t)(mm_s->pgt)) + (8*PGT_ENTRY_LV1_SELFREF);
@@ -152,3 +152,4 @@ mm_struct_free (
     /* FIXME: should free a mm_struct and all things inside it properly */ 
 } /* mm_struct_free() */
 
+/* vim: set ts=4 sw=0 tw=0 noet : */

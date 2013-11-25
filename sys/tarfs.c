@@ -124,6 +124,8 @@ int tarfs_fseek(TAR_FILE *fp, long offset, int whence)
 	case TARFS_SEEK_SET:
 		if (offset > fp->size)
 			fp->_ptr = (void *)fp->_header + TARFS_BLOCK_SIZE + fp->size;
+		else
+			fp->_ptr = (void *)fp->_header + TARFS_BLOCK_SIZE + offset;
 		break;
 	case TARFS_SEEK_CUR:
 		ptr = fp->_ptr + offset;

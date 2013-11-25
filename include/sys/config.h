@@ -1,5 +1,7 @@
-#ifndef _CONFIG_H
-#define _CONFIG_H
+#ifndef _SYS_CONFIG_H
+#define _SYS_CONFIG_H
+
+#include <sys/debug.h>
 
 /*
  * Max number of processes

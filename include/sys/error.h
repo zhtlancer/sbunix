@@ -37,3 +37,4 @@
 #define	ERANGE		34	/* Math result not representable */
 
 #endif
+/* vim: set ts=4 sw=0 tw=0 noet : */

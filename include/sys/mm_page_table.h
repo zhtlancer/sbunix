@@ -16,7 +16,7 @@
 int
 init_pgt
 (
-    addr_t      addr    /* the start physical address of page table */
+    void      *addr    /* the start physical address of page table */
 );
 
 

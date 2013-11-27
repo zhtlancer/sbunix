@@ -54,6 +54,8 @@ int sched_init(void)
 void scheduler(void)
 {
 	/* FIXME: This is a swtch test, remove this */
+	volatile unsigned int d = 0;
+
 	if (0) {
 		pa->rip = (uint64_t)&a;
 

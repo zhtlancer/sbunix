@@ -2,6 +2,11 @@
 #define _SYS_DEBUG_H
 
 /*
+ * DEBUG switch for MM
+ */
+#define DEBUG_MM	0
+
+/*
  * DEBUG switch for tarfs
  */
 #define DEBUG_TARFS 0

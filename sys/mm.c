@@ -3,6 +3,18 @@
 #include <sys/mm.h>
 #include <sys/k_stdio.h>
 
+#define mm_error(fmt, ...)	\
+	k_printf(1, "<MM> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+
+#if DEBUG_MM
+#define mm_db(fmt, ...)	\
+	k_printf(1, "<MM DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+#else
+#define mm_db(fmt, ...)
+#endif
+
+#define TEST_MM 0
+
 uint32_t page_num;          /* total number of physical pages (4k each) */
 
 page_t *page_struct_begin;  /* point to the first page structure */
@@ -216,7 +228,7 @@ alloc_free_pages
         page_tmp->va    = kvma_end;
     }
 
-    k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
+    mm_db("alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
               num, page_start->va, page_start->flag, page_start->kmalloc_size );
     return page_start;
 }/* alloc_free_pages() */
@@ -377,7 +389,7 @@ kmalloc
             return NULL;
         }
         page_start->kmalloc_size = page_num;
-        k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
+        mm_db("alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
                   page_num, page_start->va, page_start->flag, page_start->kmalloc_size );
         return (void *)(page_start->va);
     }
@@ -487,7 +499,7 @@ get_object
 
             obj_addr = (((i*64)+j)*size) + start + (addr_t)objcache_tmp;
             objcache_tmp->free -= 1;
-            k_printf( 0, "inside get_object: (%2d %2d) size=%4d, addr=%64x\n", i, j, size, obj_addr);
+            mm_db("inside get_object: (%2d %2d) size=%4d, addr=%64x\n", i, j, size, obj_addr);
 
         } /* find first 1 in bmap */
     } /* travel the objcache pages */
@@ -727,33 +739,35 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
      *---------------------------------------
      */
 
-	k_printf( 0, "find_free_page: %x\n", find_free_pages( 0x7bff  ) );
-	k_printf( 0, "find_free_page: %x\n", find_free_pages( 0x7bfe  ) );
+#if TEST_MM
+	mm_db("find_free_page: %x\n", find_free_pages( 0x7bff  ) );
+	mm_db("find_free_page: %x\n", find_free_pages( 0x7bfe  ) );
 
 	page_t *page_tmp = alloc_page( PG_SUP );
-	k_printf( 0, "alloc_page.index = %x\n", page_tmp->idx );
-	k_printf( 0, "alloc_page.va    = %x\n", page_tmp->va  );
+	mm_db("alloc_page.index = %x\n", page_tmp->idx );
+	mm_db("alloc_page.va    = %x\n", page_tmp->va  );
 
 
 	uint64_t *temp = (uint64_t *)kvma_end-0x100;
 	*temp = 0xDEADBEEF;
-	k_printf ( 0, "*temp   =%x\n", *temp );
-	k_printf ( 0, "kvma_end=%x\n", kvma_end );
+	mm_db("*temp   =%x\n", *temp );
+	mm_db("kvma_end=%x\n", kvma_end );
 
 	__free_pages( page_tmp, 0 );
 	void *page_tmp_va = get_zeroed_page( PG_SUP );
-	k_printf( 0, "get_zeroed_page.addr  = %x\n", page_tmp_va );
+	mm_db("get_zeroed_page.addr  = %x\n", page_tmp_va );
 
 
 	page_t *page_tmp1= get_page_from_va( (void *)(page_tmp->va) );
-	k_printf( 0, "get_page_from_va = %x\n", page_tmp1->idx );
-	k_printf( 0, "get_page_from_va = %x\n", page_tmp1->va  );
+	mm_db("get_page_from_va = %x\n", page_tmp1->idx );
+	mm_db("get_page_from_va = %x\n", page_tmp1->va  );
 
 
 	temp = (uint64_t *)kvma_end-0x100;
 	*temp = 0xDEADBEEF;
-	k_printf ( 0, "*temp   =%x\n", *temp );
-	k_printf ( 0, "kvma_end=%x\n", kvma_end );
+	mm_db("*temp   =%x\n", *temp );
+	mm_db("kvma_end=%x\n", kvma_end );
+#endif
 
 
 #if 0 /* begin of test codes */

@@ -3,18 +3,24 @@
 
 #include <defs.h>
 
+#define MSR_ADDR_EFER	0xC0000080
+#define MSR_ADDR_STAR	0xC0000081
+#define MSR_ADDR_LSTAR	0xC0000082
+#define MSR_ADDR_CSTAR	0xC0000083
+#define MSR_ADDR_SFMASK	0xC0000084
+
 static inline uint64_t rdmsr(uint32_t addr)
 {
 	uint32_t low, high;
 
-	asm volatile("rdmsr" : "=a" (low), "=d" (high) : "c" addr);
+	asm volatile("rdmsr" : "=a" (low), "=d" (high) : "c" (addr));
 
 	return (low | ((uint64_t)high << 32));
 }
 
 static inline void wrmsr(uint32_t addr, uint32_t low, uint32_t high)
 {
-	asm volatile("wrmsr" : : "c" addr, "a" low, "d" high : "memory");
+	asm volatile("wrmsr" : : "c" (addr), "a" (low), "d" (high) : "memory");
 }
 
 #endif

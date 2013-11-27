@@ -80,6 +80,9 @@ TAR_FILE *tarfs_fopen(const char *name)
 	TAR_FILE *fp;
 	struct posix_header_ustar *p = (struct posix_header_ustar *)&_binary_tarfs_start;
 
+	if (strlen(name) == 0)
+		return NULL;
+
 	while (p < (struct posix_header_ustar *)&_binary_tarfs_end) {
 		uint64_t size = get_size(p->size);
 
@@ -124,6 +127,8 @@ int tarfs_fseek(TAR_FILE *fp, long offset, int whence)
 	case TARFS_SEEK_SET:
 		if (offset > fp->size)
 			fp->_ptr = (void *)fp->_header + TARFS_BLOCK_SIZE + fp->size;
+		else
+			fp->_ptr = (void *)fp->_header + TARFS_BLOCK_SIZE + offset;
 		break;
 	case TARFS_SEEK_CUR:
 		ptr = fp->_ptr + offset;

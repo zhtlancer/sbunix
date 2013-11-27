@@ -624,11 +624,11 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	k_printf( 0, "default lv3 page table phy addr: %x\n", def_pgt_paddr_lv3 );
 
 	int i;
-	init_pgt( def_pgt_paddr_lv1 );
-	init_pgt( def_pgt_paddr_lv2 );
-	init_pgt( def_pgt_paddr_lv3 );
+	init_pgt((void *)def_pgt_paddr_lv1 );
+	init_pgt((void *)def_pgt_paddr_lv2 );
+	init_pgt((void *)def_pgt_paddr_lv3 );
 	for ( i=0; i<(0x100000/__PAGE_SIZE)-3; ++i ) {
-		init_pgt( 0x100000+(i*__PAGE_SIZE) );
+		init_pgt( (void *)(0x100000UL+(i*__PAGE_SIZE)) );
 	}
 
 	/* set lv1 page table entry: kernel page table: self-reference entry */

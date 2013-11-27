@@ -8,7 +8,7 @@
 int
 init_pgt
 (
-    addr_t      addr        /* page table virtual address */
+    void      *addr        /* page table virtual address */
 )
 {
     int i;
@@ -81,12 +81,14 @@ map_page_self (
     pgt_t	*pgt_tmp    ;
     page_t	*page_tmp   ;
     addr_t	pa_tmp      ;
+	void	*va_tmp;
     
     pgt_tmp         = get_pgt_entry_lv1( addr );
     if ( !(pgt_tmp->present)  ) {
 	    page_tmp    = alloc_page( PG_PGT | PG_SUP | PG_OCP );
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
-	    init_pgt( pa_tmp );
+		va_tmp		= get_va_from_page(page_tmp);
+	    init_pgt( va_tmp );
         set_pgt_entry_lv1( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
     }
 
@@ -94,7 +96,8 @@ map_page_self (
     if ( !(pgt_tmp->present)  ) {
 	    page_tmp    = alloc_page( PG_PGT | PG_SUP | PG_OCP );
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
-	    init_pgt( pa_tmp );
+		va_tmp		= get_va_from_page(page_tmp);
+	    init_pgt( va_tmp );
         set_pgt_entry_lv2( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
     }
 
@@ -102,7 +105,8 @@ map_page_self (
     if ( !(pgt_tmp->present)  ) {
 	    page_tmp    = alloc_page( PG_PGT | PG_SUP | PG_OCP );
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
-	    init_pgt( pa_tmp );
+		va_tmp		= get_va_from_page(page_tmp);
+	    init_pgt( va_tmp );
         set_pgt_entry_lv3( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
     }
 
@@ -140,6 +144,7 @@ map_page (
     pgt_t	*pgt_tmp        ;
     page_t	*page_tmp       ;
     addr_t	pa_tmp          ;
+    void	*va_tmp;
     addr_t  pgt_entry_tmp   ;
 
     pgt_entry_tmp   = (addr>>39) & 0x1FF;
@@ -147,7 +152,8 @@ map_page (
     if ( !(pgt_tmp->present)  ) {
 	    page_tmp    = alloc_page( PG_PGT | PG_SUP | PG_OCP );
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
-	    init_pgt( pa_tmp );
+		va_tmp		= get_va_from_page(page_tmp);
+	    init_pgt( va_tmp );
         set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
     }
     pgt_tmp = (pgt_t *)get_va_from_page( get_page_from_pgt(pgt_tmp) );
@@ -158,7 +164,8 @@ map_page (
     if ( !(pgt_tmp->present)  ) {
 	    page_tmp    = alloc_page( PG_PGT | PG_SUP | PG_OCP );
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
-	    init_pgt( pa_tmp );
+		va_tmp		= get_va_from_page(page_tmp);
+	    init_pgt( va_tmp );
         set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
     }
     pgt_tmp = (pgt_t *)get_va_from_page( get_page_from_pgt(pgt_tmp) );
@@ -169,7 +176,8 @@ map_page (
     if ( !(pgt_tmp->present)  ) {
 	    page_tmp    = alloc_page( PG_PGT | PG_SUP | PG_OCP );
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
-	    init_pgt( pa_tmp );
+		va_tmp		= get_va_from_page(page_tmp);
+	    init_pgt( va_tmp );
         set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
     }
     pgt_tmp = (pgt_t *)get_va_from_page( get_page_from_pgt(pgt_tmp) );
@@ -349,4 +357,4 @@ get_pgt_entry_lv1
     return (pgt_t *)addr_tmp;
 }/* get_pgt_entry_lv1() */
 
-        
+/* vim: set ts=4 sw=0 tw=0 noet : */

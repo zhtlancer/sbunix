@@ -2,6 +2,7 @@
 #include <defs.h>
 #include <sys/mm.h>
 #include <sys/k_stdio.h>
+#include <sys/sched.h>
 
 
 /*-------------------------------------------------------------------------
@@ -100,6 +101,7 @@ mm_struct_new (
     mm_s->code_end      = code_end  ;
     mm_s->data_start    = data_start;
     mm_s->data_end      = data_end  ;
+	mm_s->stack_start	= USTACK_TOP - __PAGE_SIZE;
 
     /* setup vma for code */
     vma_tmp             = (vma_t *)get_object( objcache_vma_head );
@@ -109,24 +111,35 @@ mm_struct_new (
     vma_current         = vma_tmp;
 
     /* setup vma for data */
-    vma_tmp             = (vma_t *)get_object( objcache_vma_head );
-	vma_set( vma_tmp, data_start, data_end         , mm_s->mmap, vma_current,
-             0, file, data_ofs, 0, 0 );
-    vma_current->next   = vma_tmp;
-    mm_s->mmap->prev    = vma_tmp;
+	if (data_start < data_end) {
+		vma_tmp             = (vma_t *)get_object( objcache_vma_head );
+		vma_set( vma_tmp, data_start, data_end         , mm_s->mmap, vma_current,
+				0, file, data_ofs, 0, 0 );
+		vma_current->next   = vma_tmp;
+		mm_s->mmap->prev    = vma_tmp;
+	}
 
     /* setup vma for bss  */
-    vma_tmp             = (vma_t *)get_object( objcache_vma_head );
-	vma_set( vma_tmp, data_end  , data_end+bss_size, mm_s->mmap, vma_current,
-             0, file, data_ofs, 0, 0 );
-    vma_current->next   = vma_tmp;
-    mm_s->mmap->prev    = vma_tmp;
+	if (bss_size > 0) {
+		vma_tmp             = (vma_t *)get_object( objcache_vma_head );
+		vma_set( vma_tmp, data_end  , data_end+bss_size, mm_s->mmap, vma_current,
+				0, file, data_ofs, 0, 0 );
+		vma_current->next   = vma_tmp;
+		mm_s->mmap->prev    = vma_tmp;
+	}
+
+	/* XXX: we always provide user mode stack */
+	vma_tmp = (vma_t *)get_object(objcache_vma_head);
+	vma_set(vma_tmp, mm_s->stack_start, USTACK_TOP, mm_s->mmap, vma_current,
+			0, file, data_ofs, 0, 0);
+	vma_current->next = vma_tmp;
+	mm_s->mmap->prev = vma_tmp;
 
     /* setup page table */
 
     mm_s->pgt   = get_zeroed_page( PG_PGT | PG_SUP | PG_OCP );
     pgt_pa      = get_pa_from_va( mm_s->pgt );
-    init_pgt( (addr_t)(mm_s->pgt) );
+    init_pgt( (mm_s->pgt) );
 
 	/* set lv1 page table entry: self-reference entry */
 	addr = ((addr_t)(mm_s->pgt)) + (8*PGT_ENTRY_LV1_SELFREF);
@@ -152,3 +165,4 @@ mm_struct_free (
     /* FIXME: should free a mm_struct and all things inside it properly */ 
 } /* mm_struct_free() */
 
+/* vim: set ts=4 sw=0 tw=0 noet : */

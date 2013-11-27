@@ -66,4 +66,17 @@ int strncmp(const char *s1, const char *s2, size_t n)
 		return (int) ((unsigned char)*s1 - (unsigned char)*s2);
 }
 
+size_t strlcpy(char *dst, const char *src, size_t size)
+{
+	char *dst_in = dst;
+
+	if (size > 0) {
+		while (--size > 0 && *src != '\0')
+			*dst++ = *src++;
+		*dst = '\0';
+	}
+
+	return dst - dst_in;
+}
+
 /* vim: set ts=4 sw=0 tw=0 noet : */

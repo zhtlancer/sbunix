@@ -2,6 +2,7 @@
 #include <defs.h>
 #include <sys/mm.h>
 #include <sys/k_stdio.h>
+#include <sys/sched.h>
 
 
 /*-------------------------------------------------------------------------
@@ -100,6 +101,7 @@ mm_struct_new (
     mm_s->code_end      = code_end  ;
     mm_s->data_start    = data_start;
     mm_s->data_end      = data_end  ;
+	mm_s->stack_start	= USTACK_TOP - __PAGE_SIZE;
 
     /* setup vma for code */
     vma_tmp             = (vma_t *)get_object( objcache_vma_head );
@@ -109,18 +111,29 @@ mm_struct_new (
     vma_current         = vma_tmp;
 
     /* setup vma for data */
-    vma_tmp             = (vma_t *)get_object( objcache_vma_head );
-	vma_set( vma_tmp, data_start, data_end         , mm_s->mmap, vma_current,
-             0, file, data_ofs, 0, 0 );
-    vma_current->next   = vma_tmp;
-    mm_s->mmap->prev    = vma_tmp;
+	if (data_start < data_end) {
+		vma_tmp             = (vma_t *)get_object( objcache_vma_head );
+		vma_set( vma_tmp, data_start, data_end         , mm_s->mmap, vma_current,
+				0, file, data_ofs, 0, 0 );
+		vma_current->next   = vma_tmp;
+		mm_s->mmap->prev    = vma_tmp;
+	}
 
     /* setup vma for bss  */
-    vma_tmp             = (vma_t *)get_object( objcache_vma_head );
-	vma_set( vma_tmp, data_end  , data_end+bss_size, mm_s->mmap, vma_current,
-             0, file, data_ofs, 0, 0 );
-    vma_current->next   = vma_tmp;
-    mm_s->mmap->prev    = vma_tmp;
+	if (bss_size > 0) {
+		vma_tmp             = (vma_t *)get_object( objcache_vma_head );
+		vma_set( vma_tmp, data_end  , data_end+bss_size, mm_s->mmap, vma_current,
+				0, file, data_ofs, 0, 0 );
+		vma_current->next   = vma_tmp;
+		mm_s->mmap->prev    = vma_tmp;
+	}
+
+	/* XXX: we always provide user mode stack */
+	vma_tmp = (vma_t *)get_object(objcache_vma_head);
+	vma_set(vma_tmp, mm_s->stack_start, USTACK_TOP, mm_s->mmap, vma_current,
+			0, file, data_ofs, 0, 0);
+	vma_current->next = vma_tmp;
+	mm_s->mmap->prev = vma_tmp;
 
     /* setup page table */
 

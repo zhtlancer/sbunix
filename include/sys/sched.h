@@ -4,6 +4,11 @@
 #include <defs.h>
 #include <sys/mm.h>
 
+/* Top of user address space(excluding) */
+#define UVMA_TOP	(0x0000800000000000UL)
+/* Top of user stack */
+#define USTACK_TOP	(UVMA_TOP - __PAGE_SIZE)
+
 /* Enum values for Task states */
 enum TASK_STATE {
 	TASK_UNUSED,	/* PCB not used */
@@ -37,6 +42,9 @@ struct task_struct {
 	/* Parent process */
 	struct task_struct *parent;
 
+	/* Kernel stack */
+	void *stack;
+
 	mm_struct_t *mm;
 
 	/* Saved CR3 register (PA to page table)*/
@@ -52,6 +60,10 @@ struct task_struct {
 	 */
 };
 
+struct task_struct *create_task(const char *name);
+
+struct task_struct *duplicate_task(struct task_struct *parent);
+
 int sched_init(void);
 
 void scheduler(void);
@@ -60,7 +72,7 @@ void swtch(struct context **old, struct context *new);
 
 void swtch_to(struct context *new);
 
-void _jump_to_usermode(void *func);
+void _jump_to_usermode(void *func, void *stack);
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

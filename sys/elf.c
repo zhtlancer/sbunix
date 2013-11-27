@@ -7,13 +7,28 @@
 #include <sys/mm_types.h>
 #include <sys/mm_page_table.h>
 #include <sys/sched.h>
+#include <sys/string.h>
+#include <sys/sched.h>
+
+#define elf_error(fmt, ...)	\
+	k_printf(1, "<ELF> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+
+#if DEBUG_ELF
+#define elf_db(fmt, ...)	\
+	k_printf(1, "<ELF DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+#else
+#define elf_db(fmt, ...)
+#endif
+
+#define TEST_ELF 0
 
 static int verify_elf(struct elf64_header *hdr)
 {
 	return *(elf_magic_t *)hdr != ELF_MAGIC;
 }
 
-int parse_elf_executable(const char *name)
+#if TEST_ELF
+static int elf_test(const char *name)
 {
 	int i;
 	struct elf64_header hdr;
@@ -73,11 +88,139 @@ int parse_elf_executable(const char *name)
 		k_printf(1, "%x\n", temp[0]);
 		tarfs_fseek(fp, phdr[0].offset, TARFS_SEEK_SET);
 		tarfs_fread((void *)phdr[0].vaddr, 1, phdr[0].filesz, fp);
+		map_page_self(USTACK_TOP - __PAGE_SIZE, 1, 0, PG_USR | PGT_RW, 0, 0, 0, PGT_RW | PGT_USR);
 		while (d);
-		_jump_to_usermode((void *)0x4000B0);
+		_jump_to_usermode((void *)0x4000B0, (void *)USTACK_TOP - 8);
 	}
 
 	return 0;
+}
+#endif
+
+int parse_elf_executable(struct elf64_executable *exe)
+{
+	int i, rval = 0;
+	struct elf64_header hdr;
+	struct elf64_phdr phdr;
+	TAR_FILE *fp;
+
+	elf_db("Parsing ELF '%s'\n", exe->name);
+
+	memset(exe, 0, sizeof(struct elf64_executable));
+
+	fp = tarfs_fopen(exe->name);
+	tarfs_fread(&hdr, sizeof(hdr), 1, fp);
+
+	if (verify_elf(&hdr)) {
+		elf_error("Verification error\n");
+		rval = -ENOEXEC;
+		goto fail;
+	}
+
+	if (hdr.type != 2) {
+		elf_error("Unsupported ELF file (%d)\n", hdr.type);
+		rval = -ENOEXEC;
+		goto fail;
+	}
+
+	exe->entry = (void *)hdr.entry;
+
+	elf_db("ELF entry: %p", exe->entry);
+
+	tarfs_fseek(fp, hdr.phoff, TARFS_SEEK_SET);
+	for (i = 0; i < hdr.phnum; i++) {
+		tarfs_fread(&phdr, sizeof(phdr), 1, fp);
+		elf_db("phdr[%x,%x]: %x\n", phdr.type, phdr.flags);
+		switch (phdr.type) {
+		case PT_LOAD:
+			if (phdr.flags & ELF_PH_FLAG_X) {
+				/* .text */
+				elf_db(".text segment, filesz=%x, memsz=%x\n",
+						phdr.filesz, phdr.memsz);
+				exe->code_start = (void *)phdr.vaddr;
+				exe->code_size = phdr.memsz;
+				exe->code_offset = phdr.offset;
+			} else {
+				elf_db(".data segment, filesz=%x, memsz=%x bss=%x\n",
+						phdr.filesz, phdr.memsz, phdr.memsz - phdr.filesz);
+				exe->data_start = (void *)phdr.vaddr;
+				exe->data_size = phdr.filesz;
+				exe->data_offset = phdr.offset;
+				exe->bss_size = phdr.memsz - phdr.filesz;
+			}
+			break;
+		case PT_GNU_STACK:
+			elf_db("Stack Segment, ignored (flags=%x offset=%x vaddr=%x paddr=%x filesz=%x memsz=%x)\n",
+					phdr.flags, phdr.offset, phdr.vaddr, phdr.paddr, phdr.filesz, phdr.memsz);
+			break;
+		default:
+			elf_error("Unexpected Segment type (%x)\n", phdr.type);
+			rval = -ENOEXEC;
+			goto fail;
+		}
+	}
+
+#if TEST_ELF
+	rval = elf_test(name);
+#endif
+
+fail:
+	tarfs_close(fp);
+	return rval;
+}
+
+int load_elf(struct task_struct *task, struct elf64_executable *exe)
+{
+	int i, rval = 0;
+	struct elf64_header hdr;
+	struct elf64_phdr phdr;
+	TAR_FILE *fp;
+
+	elf_db("Loading ELF '%s'\n", exe->name);
+
+	fp = tarfs_fopen(exe->name);
+	tarfs_fread(&hdr, sizeof(hdr), 1, fp);
+
+	tarfs_fseek(fp, hdr.phoff, TARFS_SEEK_SET);
+	for (i = 0; i < hdr.phnum; i++) {
+		uint8_t flags = PG_USR;
+		void *usr_addr;
+		size_t size;
+
+		tarfs_fread(&phdr, sizeof(phdr), 1, fp);
+
+		if (phdr.type != PT_LOAD)
+			continue;
+		if (phdr.flags & ELF_PH_FLAG_W)
+			flags |= PGT_RW;
+		if (phdr.flags & ELF_PH_FLAG_X)
+			flags |= PGT_EXE;
+		elf_db("[%d] flags = %x\n", i, flags);
+
+		/* Allocate physical memory and load file content */
+		usr_addr = (void *)phdr.vaddr;
+		tarfs_fseek(fp, phdr.offset, TARFS_SEEK_SET);
+		for (size = 0; size < phdr.memsz; size += __PAGE_SIZE) {
+			page_t *page = alloc_page(flags);
+			void *k_addr = (void *)page->va;
+
+			if (size < phdr.filesz) {
+				size_t sec_size = phdr.filesz - size;
+				sec_size = sec_size < __PAGE_SIZE ? sec_size : __PAGE_SIZE;
+				tarfs_fread(k_addr, 1, sec_size, fp);
+				memset(k_addr+sec_size, 0, __PAGE_SIZE-sec_size);
+			} else {
+				memset(k_addr, 0, __PAGE_SIZE);
+			}
+
+			/* FIXME: Is it OK to use the same flags for page and page-table? */
+			map_page(task->mm->pgt, (addr_t)usr_addr+size,
+					0, get_pa_from_page(page),
+					flags, 0, 0, 0, flags);
+		}
+	}
+
+	return rval;
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

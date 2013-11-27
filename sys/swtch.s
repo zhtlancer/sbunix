@@ -45,9 +45,9 @@ _jump_to_usermode:
 	movw %ax, %fs
 	movw %ax, %gs
 
-	mov %rsp, %rax
+	mov %rsi, %rsp
 	push $0x23	/* %ss */
-	push %rax
+	push %rsi
 	pushfq
 	push $0x1B	/* %cs */
 	push %rdi	/* The function pointer passed in */

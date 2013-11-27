@@ -25,8 +25,6 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 
 	tarfs_init();
 
-	parse_elf_executable("bin/hello");
-
 	/* Now we are calling the main loop, and should never return */
 	scheduler();
 

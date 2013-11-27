@@ -21,5 +21,7 @@ void *memmove(void *dest, const void *src, size_t n);
 int strcmp(const char *s1, const char *s2);
 int strncmp(const char *s1, const char *s2, size_t n);
 
+size_t strlcpy(char *dst, const char *src, size_t n);
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

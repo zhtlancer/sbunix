@@ -174,21 +174,17 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 	struct elf64_phdr phdr;
 	TAR_FILE *fp;
 
-	volatile int d=1;
-
-	while (d);
-
 	elf_db("Loading ELF '%s'\n", exe->name);
 
 	fp = tarfs_fopen(exe->name);
 	tarfs_fread(&hdr, sizeof(hdr), 1, fp);
 
-	tarfs_fseek(fp, hdr.phoff, TARFS_SEEK_SET);
 	for (i = 0; i < hdr.phnum; i++) {
 		uint8_t flags = PG_USR;
 		void *usr_addr;
 		size_t size;
 
+		tarfs_fseek(fp, hdr.phoff + i*sizeof(phdr), TARFS_SEEK_SET);
 		tarfs_fread(&phdr, sizeof(phdr), 1, fp);
 
 		if (phdr.type != PT_LOAD)

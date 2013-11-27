@@ -174,6 +174,10 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 	struct elf64_phdr phdr;
 	TAR_FILE *fp;
 
+	volatile int d=1;
+
+	while (d);
+
 	elf_db("Loading ELF '%s'\n", exe->name);
 
 	fp = tarfs_fopen(exe->name);

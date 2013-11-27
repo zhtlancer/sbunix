@@ -5,11 +5,11 @@
 void *memset(void *s, int c, size_t n)
 {
 	char *p;
-	int m;
+	size_t m;
 
 	p = s;
 	m = n;
-	while (m-- >= 0)
+	while (m-- > 0)
 		*p++ = c;
 
 	return s;

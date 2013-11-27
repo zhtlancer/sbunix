@@ -106,8 +106,6 @@ int parse_elf_executable(struct elf64_executable *exe)
 
 	elf_db("Parsing ELF '%s'\n", exe->name);
 
-	memset(exe, 0, sizeof(struct elf64_executable));
-
 	fp = tarfs_fopen(exe->name);
 	tarfs_fread(&hdr, sizeof(hdr), 1, fp);
 

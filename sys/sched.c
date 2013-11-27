@@ -173,6 +173,7 @@ struct task_struct *create_task(const char *name)
 		return NULL;
 	}
 
+	memset(&exe, 0, sizeof(exe));
 	strlcpy(exe.name, name, ELF_NAME_MAX);
 
 	rval = parse_elf_executable(&exe);

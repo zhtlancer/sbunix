@@ -80,6 +80,9 @@ TAR_FILE *tarfs_fopen(const char *name)
 	TAR_FILE *fp;
 	struct posix_header_ustar *p = (struct posix_header_ustar *)&_binary_tarfs_start;
 
+	if (strlen(name) == 0)
+		return NULL;
+
 	while (p < (struct posix_header_ustar *)&_binary_tarfs_end) {
 		uint64_t size = get_size(p->size);
 

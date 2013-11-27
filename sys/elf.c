@@ -198,17 +198,35 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 		/* Allocate physical memory and load file content */
 		usr_addr = (void *)phdr.vaddr;
 		tarfs_fseek(fp, phdr.offset, TARFS_SEEK_SET);
-		for (size = 0; size < phdr.memsz; size += __PAGE_SIZE) {
+		size = 0;
+		{
+			/* the first 4KiB data */
+			size_t avail_size = __PAGE_SIZE - (phdr.vaddr & __PAGE_SIZE_MASK);
 			page_t *page = alloc_page(flags);
 			void *k_addr = (void *)page->va;
+			memset(k_addr, 0, __PAGE_SIZE);
+			k_addr += phdr.vaddr & __PAGE_SIZE_MASK; /* adjust to the vaddr */
+			if (size < phdr.filesz) {
+				size_t sec_size = phdr.filesz - size;
+				sec_size = sec_size < avail_size ? sec_size : avail_size;
+				tarfs_fread(k_addr, 1, sec_size, fp);
+			}
+			/* FIXME: Is it OK to use the same flags for page and page-table? */
+			map_page(task->mm->pgt, (addr_t)usr_addr+size,
+					0, get_pa_from_page(page),
+					flags, 0, 0, 0, flags);
+			size += avail_size;
+		}
+		while (size < phdr.memsz) {
+			page_t *page = alloc_page(flags);
+			/* The vaddr may be not at the start of page */
+			void *k_addr = (void *)page->va + ((uint64_t)phdr.vaddr & __PAGE_SIZE_MASK);
 
+			memset(k_addr, 0, __PAGE_SIZE);
 			if (size < phdr.filesz) {
 				size_t sec_size = phdr.filesz - size;
 				sec_size = sec_size < __PAGE_SIZE ? sec_size : __PAGE_SIZE;
 				tarfs_fread(k_addr, 1, sec_size, fp);
-				memset(k_addr+sec_size, 0, __PAGE_SIZE-sec_size);
-			} else {
-				memset(k_addr, 0, __PAGE_SIZE);
 			}
 
 			/* FIXME: Is it OK to use the same flags for page and page-table? */

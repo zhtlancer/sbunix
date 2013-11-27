@@ -34,6 +34,37 @@ swtch_to:
 	popq %rbx
 	popq %rax
 	ret
+/* 1: CR3, 2: target RSP, 3: target RIP */
+.globl _switch_to_usermode
+_switch_to_usermode:
+	/* FIXME: Now we disable IRQ first */
+	cli
+	movw $0x23, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	movw %ax, %fs
+	movw %ax, %gs
+
+	/* Switch CR3 */
+	mov	%rdi, %cr3
+
+	mov %rsi, %rsp
+	mov %rdx, %rcx	/* store rip in rcx */
+	pushfq
+	popq %r11	/* store rflags in R11 */
+
+	/* restore other registers */
+	popq %rbp
+	popq %rsi
+	popq %rdi
+	popq %rdx
+	popq %rbx
+	popq %rax
+	popq %rcx	/*FIXME: This is for the unused rip */
+	
+	push $0x23	/* %ss */
+	push $0x1B	/* %cs */
+	sysretq
 
 .globl _jump_to_usermode
 _jump_to_usermode:

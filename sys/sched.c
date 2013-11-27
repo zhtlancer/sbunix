@@ -165,13 +165,18 @@ struct task_struct *create_task(const char *name)
 {
 	struct elf64_executable exe;
 	struct task_struct *task;
+	page_t *page;
+	uint64_t *temp;
 	int rval = 0;
+	volatile int d = 1;
 
 	task = alloc_task();
 	if (task == NULL) {
 		sched_error("Failed to alloc task\n");
 		return NULL;
 	}
+
+	/* TODO: Clean up task */
 
 	memset(&exe, 0, sizeof(exe));
 	strlcpy(exe.name, name, ELF_NAME_MAX);
@@ -189,15 +194,33 @@ struct task_struct *create_task(const char *name)
 			(addr_t)exe.data_start + exe.data_size,
 			0, 0, 0,
 			exe.bss_size);
-
-	/* Set up entry address */
-
+	task->cr3 = get_pa_from_va(task->mm->pgt);
 
 	/* Allocate physical memory and load elf file into it */
 	load_elf(task, &exe);
 
+	while (d);
+	/* Allocate and map user stack 
+	 * also initialize the stack content for first run */
+	page = alloc_page(PG_USR | PGT_RW);
+	map_page(task->mm->pgt, USTACK_TOP - __PAGE_SIZE, 0,
+			get_pa_from_page(page), PG_USR | PGT_RW, 0, 0, 0, PGT_RW | PGT_USR);
+	temp = (uint64_t *)(page->va + __PAGE_SIZE - 8);
+	*temp-- = (uint64_t)exe.entry;
+	*temp-- = 0x0;
+	*temp-- = 0x0;
+	*temp-- = 0x0;
+	*temp-- = 0x0;
+	*temp-- = 0x0;
+	*temp-- = 0x0;
+	task->context = (struct context *)(USTACK_TOP - 8 * 7);
+	task->rip = (uint64_t)exe.entry;
+
+	while (d);
 	/* Allocate kernel stack for it */
 	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE - 8;
+
+	_switch_to_usermode(task->cr3, task->context, (void *)task->rip);
 
 	return task;
 

@@ -21,9 +21,14 @@ enum TASK_STATE {
 
 struct task_struct;
 
+/* XXX: Be careful, changing this would affect the context switch procedure,
+ * so corresponding changes in _switch_to_usermode needed.
+ */
 struct context {
-	uint64_t rdi;
+	uint64_t rbp;
 	uint64_t rsi;
+	uint64_t rdi;
+	uint64_t rdx;
 	uint64_t rbx;
 	uint64_t rax;
 	uint64_t rip;
@@ -53,6 +58,9 @@ struct task_struct {
 	/* Saved context for this process (userspace stack) */
 	struct context *context;
 
+	/* Saved RIP */
+	uint64_t rip;
+
 	/*
 	 * TODO:
 	 * # Filesystem related elements (current dir, opened files)
@@ -71,6 +79,8 @@ void scheduler(void);
 void swtch(struct context **old, struct context *new);
 
 void swtch_to(struct context *new);
+
+void _switch_to_usermode(uint64_t cr3, void *stack, void *target);
 
 void _jump_to_usermode(void *func, void *stack);
 

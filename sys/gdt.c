@@ -25,6 +25,7 @@ uint64_t gdt[MAX_GDT] = {
 	GDT_DS | P | W | DPL0,  /*** kernel data segment descriptor ***/
 	GDT_CS | P | DPL3 | L,  /*** user code segment descriptor ***/
 	GDT_DS | P | W | DPL3,  /*** user data segment descriptor ***/
+	GDT_CS | P | DPL3 | L,  /*** user code segment descriptor, for sysret ***/
 	0, 0,                   /*** TSS ***/
 };
 
@@ -45,7 +46,7 @@ void reload_gdt() {
 }
 
 void setup_tss() {
-	struct sys_segment_descriptor* sd = (struct sys_segment_descriptor*)&gdt[5]; // 6th&7th entry in GDT
+	struct sys_segment_descriptor* sd = (struct sys_segment_descriptor*)&gdt[6]; // 6th&7th entry in GDT
 	sd->sd_lolimit = sizeof(struct tss_t)-1;
 	sd->sd_lobase = ((uint64_t)&tss);
 	sd->sd_type = 9; // 386 TSS
@@ -55,7 +56,7 @@ void setup_tss() {
 	sd->sd_gran = 0;
 	sd->sd_hibase = ((uint64_t)&tss) >> 24;
 
-	__asm__ volatile("mov $0x28, %%rax\n\t"
+	__asm__ volatile("mov $0x30, %%rax\n\t"
 			"ltr %%ax" : : : "rax");
 }
 

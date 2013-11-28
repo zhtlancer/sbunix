@@ -5,6 +5,7 @@
 
 #include <sys/elf.h>
 #include <sys/error.h>
+#include <sys/gdt.h>
 
 #define sched_error(fmt, ...)	\
 	k_printf(1, "<ELF> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
@@ -207,19 +208,21 @@ struct task_struct *create_task(const char *name)
 			get_pa_from_page(page), PG_USR | PGT_RW, 0, 0, 0, PGT_RW | PGT_USR);
 	temp = (uint64_t *)(page->va + __PAGE_SIZE - 8);
 	*temp-- = (uint64_t)exe.entry;
+	*temp-- = DEFAULT_USER_RFLAGS;
 	*temp-- = 0x0;
 	*temp-- = 0x0;
 	*temp-- = 0x0;
 	*temp-- = 0x0;
 	*temp-- = 0x0;
 	*temp-- = 0x0;
-	task->context = (struct context *)(USTACK_TOP - 8 * 7);
+	task->context = (struct context *)(USTACK_TOP - 8 * 8);
 	task->rip = (uint64_t)exe.entry;
 
 	while (d);
 	/* Allocate kernel stack for it */
 	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE - 8;
 
+	tss_set_kernel_stack(task->stack);
 	_switch_to_usermode(task->cr3, task->context, (void *)task->rip);
 
 	return task;

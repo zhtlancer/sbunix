@@ -54,6 +54,14 @@ void setup_tss() {
 	sd->sd_hilimit = 0;
 	sd->sd_gran = 0;
 	sd->sd_hibase = ((uint64_t)&tss) >> 24;
+
+	asm volatile("mov $0x28, %%rax\n\t"
+			"ltr %%ax" : : : "rax");
+}
+
+void tss_set_kernel_stack(void *stack)
+{
+	tss.rsp0 = (uint64_t)stack;
 }
 
 /*------------------------------

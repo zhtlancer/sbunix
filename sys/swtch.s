@@ -50,8 +50,6 @@ _switch_to_usermode:
 
 	mov %rsi, %rsp
 	mov %rdx, %rcx	/* store rip in rcx */
-	pushfq
-	popq %r11	/* store rflags in R11 */
 
 	/* restore other registers */
 	popq %rbp
@@ -60,10 +58,9 @@ _switch_to_usermode:
 	popq %rdx
 	popq %rbx
 	popq %rax
-	popq %rcx	/*FIXME: This is for the unused rip */
+	popq %r11	/* RFLAGS */
+	popq %rcx	/* FIXME: This is for the unused rip */
 	
-	push $0x23	/* %ss */
-	push $0x1B	/* %cs */
 	sysretq
 
 .globl _jump_to_usermode

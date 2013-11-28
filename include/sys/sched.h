@@ -21,6 +21,8 @@ enum TASK_STATE {
 
 struct task_struct;
 
+#define DEFAULT_USER_RFLAGS	0x200202
+
 /* XXX: Be careful, changing this would affect the context switch procedure,
  * so corresponding changes in _switch_to_usermode needed.
  */
@@ -31,6 +33,7 @@ struct context {
 	uint64_t rdx;
 	uint64_t rbx;
 	uint64_t rax;
+	uint64_t rflags;
 	uint64_t rip;
 };
 

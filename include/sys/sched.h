@@ -69,6 +69,11 @@ struct task_struct {
 	 * # Filesystem related elements (current dir, opened files)
 	 * # Other stuffs that required...
 	 */
+	struct file *files[NFILE_PER_PROC];
+
+	struct inode *cwd;
+
+	char name[16];
 };
 
 struct task_struct *create_task(const char *name);

@@ -55,7 +55,7 @@ void setup_tss() {
 	sd->sd_gran = 0;
 	sd->sd_hibase = ((uint64_t)&tss) >> 24;
 
-	asm volatile("mov $0x28, %%rax\n\t"
+	__asm__ volatile("mov $0x28, %%rax\n\t"
 			"ltr %%ax" : : : "rax");
 }
 

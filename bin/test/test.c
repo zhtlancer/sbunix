@@ -9,7 +9,7 @@ int main()
 	static volatile unsigned int d = 0xdeadbeef;
 	while (d)
 		;
-	asm ("syscall");
+	__asm__ ("syscall");
 
 	printf("%s", TEST);
 	return 0;

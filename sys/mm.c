@@ -306,7 +306,7 @@ __free_pages_anynumber
     for ( i=0; i<num; ++i, page_tmp+=1 ) {
         set_pgt_entry_lv4( (addr_t)(page_tmp->va), 0x0, PGT_NP, PGT_EXE,
                            0x0, 0x0, PGT_SUP );
-        asm volatile("invlpg (%0)" ::"r" ((addr_t)page_tmp->va) : "memory");
+        __asm__ volatile("invlpg (%0)" ::"r" ((addr_t)page_tmp->va) : "memory");
         page_tmp->flag  = PG_FRE | PG_SUP;
         page_tmp->count = 0;
         page_tmp->va    = 0x0;
@@ -680,7 +680,7 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	}
 
 	/* load default kernel space CR3 */
-	asm volatile("movq %0, %%cr3":: "b"((void *)def_pgt_paddr_lv1));
+	__asm__ volatile("movq %0, %%cr3":: "b"((void *)def_pgt_paddr_lv1));
 
 
 	k_printf( 0, "After reload CR3\n" );
@@ -709,11 +709,11 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
     /* read/write MSR register */
 	uint32_t reg_temp_lo;
 	uint32_t reg_temp_hi;
-	asm volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
+	__asm__ volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
 	k_printf ( 0, "efer_hi=%X", ((uint64_t)reg_temp_hi<<32)+reg_temp_lo );
 	reg_temp_lo |= 0x800;
-	asm volatile("wrmsr" : : "a"(reg_temp_lo), "d"(reg_temp_hi),  "c"(0xC0000080));
-	asm volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
+	__asm__ volatile("wrmsr" : : "a"(reg_temp_lo), "d"(reg_temp_hi),  "c"(0xC0000080));
+	__asm__ volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
 	k_printf ( 0, "efer_hi=%X", ((uint64_t)reg_temp_hi<<32)+reg_temp_lo );
 
 

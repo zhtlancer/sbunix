@@ -94,6 +94,7 @@ void scheduler(void)
 #if TEST_SCHED
 	sched_test();
 	/* FIXME: This is a swtch test, remove this */
+	volatile unsigned int d = 0;
 	if (0) {
 		pa->rip = (uint64_t)&a;
 		pb->rip = (uint64_t)&b;

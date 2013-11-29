@@ -168,8 +168,8 @@ struct task_struct *create_task(const char *name)
 {
 	struct elf64_executable exe;
 	struct task_struct *task;
+	struct context *ctx;
 	page_t *page;
-	uint64_t *temp;
 	int rval = 0;
 	volatile int d = 1;
 
@@ -208,16 +208,26 @@ struct task_struct *create_task(const char *name)
 	page = alloc_page(PG_USR | PGT_RW);
 	map_page(task->mm->pgt, USTACK_TOP - __PAGE_SIZE, 0,
 			get_pa_from_page(page), PG_USR | PGT_RW, 0, 0, 0, PGT_RW | PGT_USR);
-	temp = (uint64_t *)(page->va + __PAGE_SIZE - 8);
-	*temp-- = (uint64_t)exe.entry;
-	*temp-- = DEFAULT_USER_RFLAGS;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	task->context = (struct context *)(USTACK_TOP - 8 * 8);
+	ctx = (struct context *)(page->va + __PAGE_SIZE - sizeof(struct context));
+	ctx->rip = (uint64_t)exe.entry;
+	ctx->rcx = (uint64_t)exe.entry;
+	ctx->rflags = DEFAULT_USER_RFLAGS;
+	ctx->r11 = DEFAULT_USER_RFLAGS;
+	ctx->rax = 0x0;
+	ctx->rbx = 0x0;
+	ctx->rdx = 0x0;
+	ctx->rdi = 0x0;
+	ctx->rsi = 0x0;
+	ctx->rbp = 0x0;
+	ctx->r8 = 0x0;
+	ctx->r9 = 0x0;
+	ctx->r10 = 0x0;
+	ctx->r11 = 0x0;
+	ctx->r12 = 0x0;
+	ctx->r13 = 0x0;
+	ctx->r14 = 0x0;
+	ctx->r15 = 0x0;
+	task->context = (struct context *)(USTACK_TOP - sizeof(struct context));
 	task->rip = (uint64_t)exe.entry;
 
 	while (d);

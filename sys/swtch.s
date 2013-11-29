@@ -52,14 +52,23 @@ _switch_to_usermode:
 	mov %rdx, %rcx	/* store rip in rcx */
 
 	/* restore other registers */
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12
+	popq %r11
+	popq %r10
+	popq %r9
+	popq %r8
 	popq %rbp
 	popq %rsi
 	popq %rdi
 	popq %rdx
+	popq %rcx
 	popq %rbx
 	popq %rax
 	popq %r11	/* RFLAGS */
-	popq %rcx	/* FIXME: This is for the unused rip */
+	popq %rcx	/* RIP */
 	
 	sysretq
 

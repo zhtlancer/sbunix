@@ -30,9 +30,30 @@ struct file {
 	struct file_operations *f_ops;
 };
 
+#define NDIRECT 12
+
+struct p_inode {
+	uint16_t type;		/* inode type */
+	uint16_t major;
+	uint16_t minor;
+	uint16_t nlink;		/* number of hard links */
+	uint32_t size;		/* file size (in bytes) */
+	uint32_t addrs[NDIRECT+1];	/* file block addresses */
+}__attribute__((packed));
+
 struct inode {
-	int dev_num;
+	int dev_num;	/* index into system devs array */
+	uint32_t inum;
+	int ref;
+	int flags;
+
+	/* Copy of disk inode */
+	struct p_inode p_inode;
 };
+
+extern struct file files[];
+
+int vfs_init(void);
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

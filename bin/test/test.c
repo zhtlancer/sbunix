@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <syscall.h>
 
 #define TEST "TEST"
 
@@ -9,7 +10,7 @@ int main()
 	static volatile unsigned int d = 0xdeadbeef;
 	while (d)
 		;
-	__asm__ ("syscall");
+	__syscall3(16, 1, (uint64_t)TEST, 4);
 
 	printf("%s", TEST);
 	return 0;

@@ -1,13 +1,24 @@
 #include <sys/dev.h>
-
-#define DEV_CONSOLE	1
-#define DEV_TARFS	2
-#define DEV_DISK	3
+#include <sys/string.h>
 
 struct dev devs[NDEV];
 
 int dev_init(void)
 {
+	struct dev *dev;
+	memset(devs, 0, sizeof(devs));
+
+	/* Initialize console device */
+	dev = &devs[DEV_CONSOLE];
+	dev->type = DEV_TYPE_CHAR;
+	dev->seek = NULL;
+	/* TODO */
+
+	/* Initialize TARFS device */
+	dev = &devs[DEV_TARFS];
+	dev->type = DEV_TYPE_BLOCK | DEV_TYPE_PSEUDO;
+	/* TODO */
+
 	return 0;
 }
 

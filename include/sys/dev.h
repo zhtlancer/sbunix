@@ -13,7 +13,15 @@ enum {
 	DEV_SEEK_END = 3,
 };
 
+enum {
+	DEV_TYPE_CHAR	= 0x00001,
+	DEV_TYPE_BLOCK	= 0x00002,
+	DEV_TYPE_PSEUDO	= 0x10000,
+};
+
 struct dev {
+	uint32_t	type;
+	int			id;
 
 	/* Super block for filesystem on this device */
 	void *super_block;
@@ -23,6 +31,8 @@ struct dev {
 	size_t (*read)(struct dev *dev, void *buf, size_t n);
 	size_t (*write)(struct dev *dev, void *buf, size_t n);
 };
+
+int dev_init(void);
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

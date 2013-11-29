@@ -1,6 +1,8 @@
 #ifndef _SYS_SYSCALL_H
 #define _SYS_SYSCALL_H
 
+#include <syscall_no.h>
+
 int syscall_init(void);
 
 void _syscall_lstar(void);

@@ -5,6 +5,8 @@
  * (Current implementation is based on GCC built-in functions)
  */
 
+#include <defs.h>
+
 #define memmove	__builtin_memmove
 #define memcpy	__builtin_memcpy
 #define memset	__builtin_memset

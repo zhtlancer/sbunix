@@ -2,6 +2,7 @@
 #include <sys/k_stdio.h>
 #include <sys/string.h>
 #include <sys/mm_vma.h>
+#include <sys/fs.h>
 
 #include <sys/elf.h>
 #include <sys/error.h>
@@ -222,6 +223,13 @@ struct task_struct *create_task(const char *name)
 	while (d);
 	/* Allocate kernel stack for it */
 	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE - 8;
+
+	task->files[0] = &files[0];
+	files[0].ref += 1;
+	task->files[1] = &files[1];
+	files[1].ref += 1;
+	task->files[2] = &files[2];
+	files[2].ref += 1;
 
 	tss_set_kernel_stack(task->stack);
 	_switch_to_usermode(task->cr3, task->context, (void *)task->rip);

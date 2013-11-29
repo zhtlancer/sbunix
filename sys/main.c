@@ -9,6 +9,9 @@
 #include <sys/tarfs.h>
 #include <sys/elf.h>
 #include <sys/syscall.h>
+#include <sys/console.h>
+#include <sys/dev.h>
+#include <sys/fs.h>
 
 #include <sys/mm.h>
 
@@ -22,7 +25,13 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	__asm__("sti");
 	__asm__("sti");
 
+	dev_init();
+
+	vfs_init();
+
 	tarfs_init();
+
+	console_init();
 
 	syscall_init();
 

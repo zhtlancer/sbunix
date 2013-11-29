@@ -46,6 +46,51 @@ int syscall_init(void)
 	return 0;
 }
 
+uint64_t sys_fork(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_sleep(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_wait(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_waitpid(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_exit(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_kill(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_getpid(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_open(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_close(struct context *ctx)
+{
+	return 0;
+}
+
 uint64_t sys_read(struct context *ctx)
 {
 	struct file *file = current->files[ctx->rdi];
@@ -62,15 +107,61 @@ uint64_t sys_write(struct context *ctx)
 	return file->f_ops->write(file, (void *)ctx->rsi, ctx->rdx);
 }
 
+uint64_t sys_seek(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_getdents(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_mmap(struct context *ctx)
+{
+	return 0;
+}
+
+uint64_t sys_sbrk(struct context *ctx)
+{
+	return 0;
+}
+
 uint64_t syscall_common(struct context *ctx)
 {
 	uint64_t syscall_no = ctx->rax;
 
 	switch (syscall_no) {
+	case SYS_fork:
+		return sys_fork(ctx);
+	case SYS_sleep:
+		return sys_sleep(ctx);
+	case SYS_wait:
+		return sys_wait(ctx);
+	case SYS_waitpid:
+		return sys_waitpid(ctx);
+	case SYS_exit:
+		return sys_exit(ctx);
+	case SYS_kill:
+		return sys_kill(ctx);
+	case SYS_getpid:
+		return sys_getpid(ctx);
+	case SYS_open:
+		return sys_open(ctx);
+	case SYS_close:
+		return sys_close(ctx);
 	case SYS_read:
 		return sys_read(ctx);
 	case SYS_write:
 		return sys_write(ctx);
+	case SYS_seek:
+		return sys_seek(ctx);
+	case SYS_getdents:
+		return sys_getdents(ctx);
+	case SYS_mmap:
+		return sys_mmap(ctx);
+	case SYS_sbrk:
+		return sys_sbrk(ctx);
 	default:
 		syscall_error("Undefined syscall number (0x%x)\n", syscall_no);
 		break;

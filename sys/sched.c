@@ -175,6 +175,7 @@ struct task_struct *create_task(const char *name)
 	int rval = 0;
 	volatile int d = 1;
 
+	while (d);
 	task = alloc_task();
 	if (task == NULL) {
 		sched_error("Failed to alloc task\n");

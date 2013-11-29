@@ -123,7 +123,7 @@ int parse_elf_executable(struct elf64_executable *exe)
 
 	exe->entry = (void *)hdr.entry;
 
-	elf_db("ELF entry: %p", exe->entry);
+	elf_db("ELF entry: %p\n", exe->entry);
 
 	tarfs_fseek(fp, hdr.phoff, TARFS_SEEK_SET);
 	for (i = 0; i < hdr.phnum; i++) {
@@ -233,6 +233,7 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 			map_page(task->mm->pgt, (addr_t)usr_addr+size,
 					0, get_pa_from_page(page),
 					flags, 0, 0, 0, flags);
+			size += __PAGE_SIZE;
 		}
 	}
 

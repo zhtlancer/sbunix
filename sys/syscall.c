@@ -1,5 +1,6 @@
 #include <sys/msr.h>
 #include <sys/syscall.h>
+#include <sys/sched.h>
 
 #define SYSCALL_CS	0x08
 #define SYSRET_CS	0x1B
@@ -30,6 +31,11 @@ int syscall_init(void)
 	temp |= RFLAGS_IF;
 	wrmsr(MSR_ADDR_SFMASK, temp & 0xFFFFFFFF, temp >> 32);
 
+	return 0;
+}
+
+uint64_t syscall_common(struct context *ctx)
+{
 	return 0;
 }
 

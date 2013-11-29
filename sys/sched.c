@@ -25,6 +25,8 @@ struct {
 	struct task_struct tasks[NPROC];
 } task_table;
 
+struct task_struct *current;
+
 #if TEST_SCHED
 uint8_t stack_a[1024];
 uint8_t stack_b[1024];
@@ -240,6 +242,8 @@ struct task_struct *create_task(const char *name)
 	files[1].ref += 1;
 	task->files[2] = &files[2];
 	files[2].ref += 1;
+
+	current = task;
 
 	tss_set_kernel_stack(task->stack);
 	_switch_to_usermode(task->cr3, task->context, (void *)task->rip);

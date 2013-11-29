@@ -51,6 +51,15 @@ struct context {
  * Structure for process (PCB)
  */
 struct task_struct {
+	/* Saved context for this process (userspace stack) */
+	struct context *context;
+
+	/* Kernel stack */
+	void *stack;
+
+	/* Saved RIP */
+	uint64_t rip;
+
 	/* Process ID */
 	volatile int pid;
 
@@ -60,19 +69,10 @@ struct task_struct {
 	/* Parent process */
 	struct task_struct *parent;
 
-	/* Kernel stack */
-	void *stack;
-
 	mm_struct_t *mm;
 
 	/* Saved CR3 register (PA to page table)*/
 	addr_t cr3;
-
-	/* Saved context for this process (userspace stack) */
-	struct context *context;
-
-	/* Saved RIP */
-	uint64_t rip;
 
 	/*
 	 * TODO:
@@ -85,6 +85,8 @@ struct task_struct {
 
 	char name[16];
 };
+
+extern struct task_struct *current;
 
 struct task_struct *create_task(const char *name);
 

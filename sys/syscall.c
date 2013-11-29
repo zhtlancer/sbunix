@@ -46,6 +46,14 @@ int syscall_init(void)
 	return 0;
 }
 
+uint64_t sys_read(struct context *ctx)
+{
+	struct file *file = current->files[ctx->rdi];
+	if (!file->readable || file->f_ops->read == NULL)
+		return 0;
+	return file->f_ops->read(file, (void *)ctx->rsi, ctx->rdx);
+}
+
 uint64_t sys_write(struct context *ctx)
 {
 	struct file *file = current->files[ctx->rdi];
@@ -59,6 +67,8 @@ uint64_t syscall_common(struct context *ctx)
 	uint64_t syscall_no = ctx->rax;
 
 	switch (syscall_no) {
+	case SYS_read:
+		return sys_read(ctx);
 	case SYS_write:
 		return sys_write(ctx);
 	default:

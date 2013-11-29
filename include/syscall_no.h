@@ -1,6 +1,7 @@
 #ifndef _SYSCALL_NO_H
 #define _SYSCALL_NO_H
 
+#define SYS_read	15
 #define SYS_write	16
 
 #endif

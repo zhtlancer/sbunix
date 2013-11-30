@@ -65,10 +65,7 @@ struct context {
 	uint64_t rbx;
 	uint64_t rax;
 	uint64_t rip;
-	uint64_t cs;
 	uint64_t rflags;
-	uint64_t rsp;
-	uint64_t ss;
 };
 
 /*
@@ -80,8 +77,11 @@ struct task_struct {
 	 */
 	void *stack;
 
-	/* Saved context for this process (userspace stack) */
+	/* Saved context for this process (on kernel stack) */
 	struct context *context;
+
+	/* Saved trampframe for syscall/irq (on kernel stack) */
+	struct pt_regs *tf;
 
 	/* Process ID */
 	volatile pid_t pid;

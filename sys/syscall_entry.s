@@ -33,7 +33,8 @@ _syscall_lstar:
 	callq syscall_common
 
 	/* syscall finished, restore & returning */
-
+.globl _syscall_lstar_ret
+_syscall_lstar_ret:
 	popq %r15
 	popq %r14
 	popq %r13

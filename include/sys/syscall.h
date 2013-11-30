@@ -7,6 +7,8 @@ int syscall_init(void);
 
 void _syscall_lstar(void);
 
+void _syscall_lstar_ret(void);
+
 void _syscall_cstar(void);
 
 #endif

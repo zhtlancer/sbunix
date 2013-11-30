@@ -133,6 +133,8 @@ uint64_t syscall_common(struct pt_regs *regs)
 {
 	uint64_t syscall_no = regs->rax;
 
+	current->tf = regs;
+
 	switch (syscall_no) {
 	case SYS_fork:
 		return sys_fork(regs);

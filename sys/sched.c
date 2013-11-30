@@ -7,6 +7,7 @@
 #include <sys/elf.h>
 #include <sys/error.h>
 #include <sys/gdt.h>
+#include <sys/syscall.h>
 
 #define sched_error(fmt, ...)	\
 	k_printf(1, "<ELF> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
@@ -259,18 +260,25 @@ fail_task:
 	return NULL;
 }
 
+void fork_ret(void)
+{
+	/* Fake return call for forked child, no function should directly call this */
+}
+
 /*
  * Duplicate current into a new process (for fork)
  */
 struct task_struct *duplicate_task(void)
 {
 	struct task_struct *task;
+	void *k_stack;
 	int i;
 
 	task = alloc_task();
 
 	/* Duplicate vm and copy page mappings */
 	task->mm = mm_struct_dup();
+	task->cr3 = get_pa_from_va(task->mm->pgt);
 
 	/* Dup opened files */
 	for (i = 0; i < NFILE_PER_PROC; i++) {
@@ -278,12 +286,38 @@ struct task_struct *duplicate_task(void)
 			task->files[i] = file_dup(current->files[i]);
 	}
 
-	return NULL;
+	/* Allocate kernel stack, and fill it with sensible data */
+	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE;
+	k_stack = task->stack - sizeof(struct pt_regs);
+	task->tf = (struct pt_regs *)k_stack;
+
+	k_stack -= 8;
+	/* build syscall return point */
+	*(uint64_t *)k_stack = (uint64_t)_syscall_lstar_ret;
+
+	k_stack -= sizeof(struct context);
+	task->context = (struct context *)k_stack;
+	memset(task->context, 0, sizeof(struct context));
+	task->context->rip = (uint64_t)fork_ret;
+
+	return task;
 }
 
 pid_t fork(void)
 {
-	return -1;
+	struct task_struct *new;
+
+	new = duplicate_task();
+
+	/* copy trapframe from parent */
+	*new->tf = *current->tf;
+
+	/* Set child's return value to 0 */
+	new->tf->rax = 0;
+
+	new->state = TASK_RUNNABLE;
+	
+	return new->pid;
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

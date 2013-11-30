@@ -49,8 +49,8 @@ enum PH_TYPE {
 };
 
 #define ELF_PH_FLAG_X	0x01
-#define ELF_PH_FLAG_R	0x02
-#define ELF_PH_FLAG_W	0x03
+#define ELF_PH_FLAG_W	0x02
+#define ELF_PH_FLAG_R	0x04
 
 /*
  * Structure for ELF64 Program Header

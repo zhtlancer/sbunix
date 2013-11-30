@@ -206,18 +206,24 @@ struct task_struct *create_task(const char *name)
 	load_elf(task, &exe);
 
 	while (d);
-	/* Allocate and map user stack 
-	 * also initialize the stack content for first run */
-	page = alloc_page(PG_USR | PGT_RW);
+	/* Allocate and map user stack */
+	page = alloc_page(PG_USR);
 	map_page(task->mm->pgt, USTACK_TOP - __PAGE_SIZE, 0,
-			get_pa_from_page(page), PG_USR | PGT_RW, 0, 0, 0, PGT_RW | PGT_USR);
-	ctx = (struct context *)(page->va + __PAGE_SIZE - sizeof(struct context));
-	ctx->rip = (uint64_t)exe.entry;
-	ctx->rcx = (uint64_t)exe.entry;
+			get_pa_from_page(page), PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
+
+	/* Allocate kernel stack for it
+	 * also initialize the stack content for first run */
+	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE;
+	task->context = (struct context *)(task->stack - sizeof(struct context));
+	ctx = task->context;
+	ctx->ss = 0x23;
+	ctx->rsp = USTACK_TOP;
 	ctx->rflags = DEFAULT_USER_RFLAGS;
-	ctx->r11 = DEFAULT_USER_RFLAGS;
+	ctx->cs = 0x2B;
+	ctx->rip = (uint64_t)exe.entry;
 	ctx->rax = 0x0;
 	ctx->rbx = 0x0;
+	ctx->rcx = (uint64_t)exe.entry;
 	ctx->rdx = 0x0;
 	ctx->rdi = 0x0;
 	ctx->rsi = 0x0;
@@ -225,17 +231,13 @@ struct task_struct *create_task(const char *name)
 	ctx->r8 = 0x0;
 	ctx->r9 = 0x0;
 	ctx->r10 = 0x0;
-	ctx->r11 = 0x0;
+	ctx->r11 = DEFAULT_USER_RFLAGS;
 	ctx->r12 = 0x0;
 	ctx->r13 = 0x0;
 	ctx->r14 = 0x0;
 	ctx->r15 = 0x0;
-	task->context = (struct context *)(USTACK_TOP - sizeof(struct context));
-	task->rip = (uint64_t)exe.entry;
 
 	while (d);
-	/* Allocate kernel stack for it */
-	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE - 8;
 
 	task->files[0] = &files[0];
 	files[0].ref += 1;
@@ -244,10 +246,14 @@ struct task_struct *create_task(const char *name)
 	task->files[2] = &files[2];
 	files[2].ref += 1;
 
+	task->state = TASK_RUNNABLE;
+
 	current = task;
 
+	task->state = TASK_RUNNING;
+
 	tss_set_kernel_stack(task->stack);
-	_switch_to_usermode(task->cr3, task->context, (void *)task->rip);
+	_switch_to_usermode(task->cr3, task->context);
 
 	return task;
 
@@ -257,13 +263,30 @@ fail_task:
 }
 
 /*
- * Duplicate a process into a new process (like fork)
+ * Duplicate current into a new process (for fork)
  */
-struct task_struct *duplicate_task(struct task_struct *parent)
+struct task_struct *duplicate_task(void)
 {
-	/* Allocate mm_struct */
+	struct task_struct *task;
+	int i;
+
+	task = alloc_task();
+
+	/* Duplicate vm and copy page mappings */
+	task->mm = mm_struct_dup();
+
+	/* Dup opened files */
+	for (i = 0; i < NFILE_PER_PROC; i++) {
+		if (current->files[i] != NULL)
+			task->files[i] = file_dup(current->files[i]);
+	}
 
 	return NULL;
+}
+
+pid_t fork(void)
+{
+	return -1;
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

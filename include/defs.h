@@ -31,6 +31,8 @@ typedef __addr_t              addr_t;;
 
 typedef uint64_t size_t;
 
+typedef int pid_t;
+
 #endif
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

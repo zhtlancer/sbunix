@@ -64,13 +64,13 @@ struct mm_struct {
     vma_t	*mmap;		/* list of vma */
     void	*pgt;		/* level 1 page table virtual address */
 
-    addr_t	code_start;	
-    addr_t	code_end;	
-    addr_t	data_start;	
-    addr_t	data_end;	
-    addr_t	brk_start;	
-    addr_t	brk;	
-    addr_t	stack_start;	
+    addr_t	code_start;
+    addr_t	code_end;
+    addr_t	data_start;
+    addr_t	data_end;
+    addr_t	brk_start;
+    addr_t	brk_end;
+    addr_t	stack_start;
 
     uint64_t	reserved11;
     uint64_t	reserved12;

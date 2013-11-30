@@ -53,6 +53,12 @@ struct inode {
 
 extern struct file files[];
 
+static inline struct file *file_dup(struct file *file)
+{
+	file->ref += 1;
+	return file;
+}
+
 int vfs_init(void);
 
 #endif

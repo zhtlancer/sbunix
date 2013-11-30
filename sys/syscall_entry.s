@@ -2,9 +2,17 @@
 
 .globl _syscall_lstar
 _syscall_lstar:
-	/* we build the context structure for future use (in user stack) */
-	pushq %rcx	/* user rip, as after syscall instr, user rip is saved in rcx */
-	pushq %r11	/* user rflags, see above */
+	/* switch to kernel stack, and build context structure */
+	movq %rsp, %r10
+	movq current, %rax
+	movq 8(%rax), %rsp
+
+	pushq $0x23	/* user SS */
+	pushq %r10	/* user stack */
+	pushq %r11	/* user rflags */
+	pushq $0x2B /* user CS */
+	pushq %rcx	/* user rip */
+
 	pushq %rax
 	pushq %rbx
 	pushq %rcx
@@ -21,16 +29,10 @@ _syscall_lstar:
 	pushq %r14
 	pushq %r15
 
-	movq %rsp, %rdi
-	/* switch to kernel stack, and save user stack pointer */
-	movq current, %rax
-	movq 8(%rax), %rsp
 	pushq %rdi
 	callq syscall_common
 
-	/* syscall finished, returning */
-	/* restore user stack */
-	popq %rsp
+	/* syscall finished, restore & returning */
 
 	popq %r15
 	popq %r14
@@ -46,9 +48,11 @@ _syscall_lstar:
 	popq %rdx
 	popq %rcx
 	popq %rbx
-	addq $8, %rsp	/* don't pop rax here, as it holds return value now*/
-	popq %r11	/* rflags, see above */
-	popq %rcx	/* rip, see above */
+	popq %rax
+	popq %rcx		/* rip, see above */
+	addq $8, %rsp	/* Skip CS */
+	popq %r11		/* rflags, see above */
+	popq %rsp		/* rsp */
 	sysretq
 
 

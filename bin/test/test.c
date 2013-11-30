@@ -8,9 +8,13 @@ int temp;
 int main()
 {
 	static volatile unsigned int d = 0xdeadbeef;
+	int test;
 	while (d)
 		;
-	printf("%s", TEST);
+	test = printf("%s", TEST);
+
+	printf("%d\n", test);
+
 	while (d)
 		;
 

@@ -92,7 +92,7 @@ get_page_from_va
     void    *va
 )
 {
-    pgt_t *pgt_tmp = get_pgt_entry_lv4( (addr_t)va );
+    pgt_t *pgt_tmp = get_pgt_entry_lv4_self( (addr_t)va );
     uint64_t page_idx = (uint64_t)(pgt_tmp->paddr)-(uint64_t)page_index_begin;
     return (page_struct_begin+page_idx);
 }/* get_page_from_va() */
@@ -220,7 +220,7 @@ alloc_free_pages
             pgt_flag |= PGT_SUP;
 
 
-        set_pgt_entry_lv4( kvma_end, (page_tmp->idx)<<__PAGE_SIZE_SHIFT, PGT_P, PGT_NX,
+        set_pgt_entry_lv4_self( kvma_end, (page_tmp->idx)<<__PAGE_SIZE_SHIFT, PGT_P, PGT_NX,
                            0x0, 0x0, pgt_flag );
 
         page_tmp->flag  = flag | PG_OCP;
@@ -304,7 +304,7 @@ __free_pages_anynumber
 
     int i;
     for ( i=0; i<num; ++i, page_tmp+=1 ) {
-        set_pgt_entry_lv4( (addr_t)(page_tmp->va), 0x0, PGT_NP, PGT_EXE,
+        set_pgt_entry_lv4_self( (addr_t)(page_tmp->va), 0x0, PGT_NP, PGT_EXE,
                            0x0, 0x0, PGT_SUP );
         __asm__ volatile("invlpg (%0)" ::"r" ((addr_t)page_tmp->va) : "memory");
         page_tmp->flag  = PG_FRE | PG_SUP;

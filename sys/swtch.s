@@ -47,9 +47,7 @@ _switch_to_usermode:
 
 	/* Switch CR3 */
 	mov	%rdi, %cr3
-
 	mov %rsi, %rsp
-	mov %rdx, %rcx	/* store rip in rcx */
 
 	/* restore other registers */
 	popq %r15
@@ -67,8 +65,10 @@ _switch_to_usermode:
 	popq %rcx
 	popq %rbx
 	popq %rax
-	popq %r11	/* RFLAGS */
-	popq %rcx	/* RIP */
+	popq %rcx		/* RIP */
+	addq $8, %rsp	/* skip CS */
+	popq %r11		/* RFLAGS */
+	popq %rsp		/* user stack */
 	
 	sysretq
 

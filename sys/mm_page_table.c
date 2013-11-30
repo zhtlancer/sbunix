@@ -3,6 +3,13 @@
 #include <sys/mm.h>
 #include <sys/k_stdio.h>
 
+#define PGT_MID_FLAG(x)	(((x) & PGT_FLAG_MASK) | PGT_FLAG_ENABLE)
+
+/* Mask for allowing only some flags in middle level of page mapping */
+#define PGT_FLAG_MASK	(PGT_USR | PGT_PS)
+/* Force enable some flags in middle level of page mapping */
+#define PGT_FLAG_ENABLE	(PGT_RW )
+
 
 /* initialize a page table */
 int
@@ -89,7 +96,7 @@ map_page_self (
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
 		va_tmp		= get_va_from_page(page_tmp);
 	    init_pgt( va_tmp );
-        set_pgt_entry_lv1_self( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+        set_pgt_entry_lv1_self( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, PGT_MID_FLAG(flag_pgt) );
     }
 
     pgt_tmp         = get_pgt_entry_lv2_self( addr );
@@ -98,7 +105,7 @@ map_page_self (
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
 		va_tmp		= get_va_from_page(page_tmp);
 	    init_pgt( va_tmp );
-        set_pgt_entry_lv2_self( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+        set_pgt_entry_lv2_self( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, PGT_MID_FLAG(flag_pgt) );
     }
 
     pgt_tmp         = get_pgt_entry_lv3_self( addr );
@@ -107,7 +114,7 @@ map_page_self (
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
 		va_tmp		= get_va_from_page(page_tmp);
 	    init_pgt( va_tmp );
-        set_pgt_entry_lv3_self( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+        set_pgt_entry_lv3_self( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, PGT_MID_FLAG(flag_pgt) );
     }
 
     pgt_tmp         = get_pgt_entry_lv4_self( addr );
@@ -154,7 +161,7 @@ map_page (
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
 		va_tmp		= get_va_from_page(page_tmp);
 	    init_pgt( va_tmp );
-        set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+        set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, PGT_MID_FLAG(flag_pgt) );
     }
     pgt_tmp = (pgt_t *)get_va_from_page( get_page_from_pgt(pgt_tmp) );
 
@@ -166,7 +173,7 @@ map_page (
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
 		va_tmp		= get_va_from_page(page_tmp);
 	    init_pgt( va_tmp );
-        set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+        set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, PGT_MID_FLAG(flag_pgt) );
     }
     pgt_tmp = (pgt_t *)get_va_from_page( get_page_from_pgt(pgt_tmp) );
 
@@ -178,7 +185,7 @@ map_page (
 	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
 		va_tmp		= get_va_from_page(page_tmp);
 	    init_pgt( va_tmp );
-        set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+        set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, PGT_MID_FLAG(flag_pgt) );
     }
     pgt_tmp = (pgt_t *)get_va_from_page( get_page_from_pgt(pgt_tmp) );
 

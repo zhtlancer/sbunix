@@ -51,11 +51,13 @@ struct context {
  * Structure for process (PCB)
  */
 struct task_struct {
+	/* Kernel stack, it's important that this is stored at very first, this
+	 * can facilitate us accessing the kernel stack in asm
+	 */
+	void *stack;
+
 	/* Saved context for this process (userspace stack) */
 	struct context *context;
-
-	/* Kernel stack */
-	void *stack;
 
 	/* Process ID */
 	volatile pid_t pid;

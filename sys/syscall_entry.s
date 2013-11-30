@@ -3,9 +3,9 @@
 .globl _syscall_lstar
 _syscall_lstar:
 	/* switch to kernel stack, and build context structure */
-	movq %rsp, %r10
-	movq current, %rax
-	movq 8(%rax), %rsp
+	movq (current), %r10
+	movq (%r10), %r10
+	xchgq %rsp, %r10
 
 	pushq $0x23	/* user SS */
 	pushq %r10	/* user stack */
@@ -29,7 +29,7 @@ _syscall_lstar:
 	pushq %r14
 	pushq %r15
 
-	pushq %rdi
+	movq %rsp, %rdi		/* pointer of context strucure */
 	callq syscall_common
 
 	/* syscall finished, restore & returning */

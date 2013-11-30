@@ -9,8 +9,7 @@ int main()
 {
 	static volatile unsigned int d = 0xdeadbeef;
 	int test;
-	while (d)
-		;
+	*(uint64_t *)0xdeadbeef = 0;
 	test = printf("%s", TEST);
 
 	printf("%d\n", test);

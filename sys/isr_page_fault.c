@@ -3,9 +3,33 @@
 //#include <sys/io.h>
 #include <sys/k_stdio.h>
 //#include <sys/pic.h>
+#include <sys/sched.h>
+#include <sys/x86.h>
 
-void isr_page_fault()
+#define PF_EC_P		0x01
+#define PF_EC_RW	0x02
+#define PF_EC_PL	0x04
+#define PF_EC_NX	0x10
+
+#define pf_error(fmt, ...)	\
+	k_printf(1, "<PF> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+
+#if DEBUG_PF
+#define pf_db(fmt, ...)	\
+	k_printf(1, "<PF DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+#else
+#define pf_db(fmt, ...)
+#endif
+
+void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 {
-    k_printf( 0, "isr_page_fault called!!\n" );    
-    while(1);
+	uint64_t cr2 = rcr2();
+
+	pf_db("Page fault at %p, ec %x\n", cr2, ec);
+	if (!(ec & PF_EC_PL)) {
+		pf_error("Page fault in supervisor mode at %p, ec=%x\n", cr2, ec);
+		panic("Unhandled page fault\n");
+	}
+
 }
+/* vim: set ts=4 sw=0 tw=0 noet : */

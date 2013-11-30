@@ -1,10 +1,12 @@
-#ifndef _IDT_H
-#define _IDT_H
+#ifndef _SYS_IDT_H
+#define _SYS_IDT_H
 
 /*------------------------------
  * IDT
  *----------------------------*/
-#define IRQ_IPT         32
+#define EXP_PGF			14
+#define IRQ_PIT         32
+#define IRQ_KBD			33
 
 struct int_gate {
     uint16_t    offsetLo;

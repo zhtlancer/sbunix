@@ -22,9 +22,6 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 
 	mm_init(modulep, physbase, physfree);
 
-	__asm__("sti");
-	__asm__("sti");
-
 	dev_init();
 
 	vfs_init();

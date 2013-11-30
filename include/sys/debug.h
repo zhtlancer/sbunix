@@ -21,5 +21,10 @@
  */
 #define DEBUG_SCHED 1
 
+/*
+ * DEBUG switch for page-fault handler
+ */
+#define DEBUG_PF 1
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

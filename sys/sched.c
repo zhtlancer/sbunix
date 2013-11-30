@@ -237,6 +237,7 @@ struct task_struct *create_task(const char *name)
 	regs->r13 = 0x0;
 	regs->r14 = 0x0;
 	regs->r15 = 0x0;
+	task->tf = regs;
 
 	while (d);
 
@@ -251,7 +252,7 @@ struct task_struct *create_task(const char *name)
 	task->state = TASK_RUNNING;
 
 	tss_set_kernel_stack(task->stack);
-	_switch_to_usermode(task->cr3, task->context);
+	_switch_to_usermode(task->cr3, task->tf);
 
 	return task;
 

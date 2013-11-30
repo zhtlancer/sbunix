@@ -46,122 +46,124 @@ int syscall_init(void)
 	return 0;
 }
 
-uint64_t sys_fork(struct context *ctx)
+uint64_t sys_fork(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_sleep(struct context *ctx)
+uint64_t sys_sleep(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_wait(struct context *ctx)
+uint64_t sys_wait(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_waitpid(struct context *ctx)
+uint64_t sys_waitpid(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_exit(struct context *ctx)
+uint64_t sys_exit(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_kill(struct context *ctx)
+uint64_t sys_kill(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_getpid(struct context *ctx)
+uint64_t sys_getpid(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_open(struct context *ctx)
+uint64_t sys_open(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_close(struct context *ctx)
+uint64_t sys_close(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_read(struct context *ctx)
+uint64_t sys_read(struct pt_regs *regs)
 {
-	struct file *file = current->files[ctx->rdi];
+	struct file *file = current->files[regs->rdi];
 	if (!file->readable || file->f_ops->read == NULL)
 		return 0;
-	return file->f_ops->read(file, (void *)ctx->rsi, ctx->rdx);
+	regs->rax = file->f_ops->read(file, (void *)regs->rsi, regs->rdx);
+	return regs->rax;
 }
 
-uint64_t sys_write(struct context *ctx)
+uint64_t sys_write(struct pt_regs *regs)
 {
-	struct file *file = current->files[ctx->rdi];
+	struct file *file = current->files[regs->rdi];
 	if (!file->writeable || file->f_ops->write == NULL)
 		return 0;
-	return file->f_ops->write(file, (void *)ctx->rsi, ctx->rdx);
+	regs->rax = file->f_ops->write(file, (void *)regs->rsi, regs->rdx);
+	return regs->rax;
 }
 
-uint64_t sys_seek(struct context *ctx)
+uint64_t sys_seek(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_getdents(struct context *ctx)
+uint64_t sys_getdents(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_mmap(struct context *ctx)
+uint64_t sys_mmap(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t sys_sbrk(struct context *ctx)
+uint64_t sys_sbrk(struct pt_regs *regs)
 {
 	return 0;
 }
 
-uint64_t syscall_common(struct context *ctx)
+uint64_t syscall_common(struct pt_regs *regs)
 {
-	uint64_t syscall_no = ctx->rax;
+	uint64_t syscall_no = regs->rax;
 
 	switch (syscall_no) {
 	case SYS_fork:
-		return sys_fork(ctx);
+		return sys_fork(regs);
 	case SYS_sleep:
-		return sys_sleep(ctx);
+		return sys_sleep(regs);
 	case SYS_wait:
-		return sys_wait(ctx);
+		return sys_wait(regs);
 	case SYS_waitpid:
-		return sys_waitpid(ctx);
+		return sys_waitpid(regs);
 	case SYS_exit:
-		return sys_exit(ctx);
+		return sys_exit(regs);
 	case SYS_kill:
-		return sys_kill(ctx);
+		return sys_kill(regs);
 	case SYS_getpid:
-		return sys_getpid(ctx);
+		return sys_getpid(regs);
 	case SYS_open:
-		return sys_open(ctx);
+		return sys_open(regs);
 	case SYS_close:
-		return sys_close(ctx);
+		return sys_close(regs);
 	case SYS_read:
-		return sys_read(ctx);
+		return sys_read(regs);
 	case SYS_write:
-		return sys_write(ctx);
+		return sys_write(regs);
 	case SYS_seek:
-		return sys_seek(ctx);
+		return sys_seek(regs);
 	case SYS_getdents:
-		return sys_getdents(ctx);
+		return sys_getdents(regs);
 	case SYS_mmap:
-		return sys_mmap(ctx);
+		return sys_mmap(regs);
 	case SYS_sbrk:
-		return sys_sbrk(ctx);
+		return sys_sbrk(regs);
 	default:
 		syscall_error("Undefined syscall number (0x%x)\n", syscall_no);
 		break;

@@ -2,7 +2,7 @@
 
 .globl _syscall_lstar
 _syscall_lstar:
-	/* switch to kernel stack, and build context structure */
+	/* switch to kernel stack, and build pt_regs structure */
 	movq (current), %r10
 	movq (%r10), %r10
 	xchgq %rsp, %r10
@@ -29,7 +29,7 @@ _syscall_lstar:
 	pushq %r14
 	pushq %r15
 
-	movq %rsp, %rdi		/* pointer of context strucure */
+	movq %rsp, %rdi		/* pointer of pt_regs strucure */
 	callq syscall_common
 
 	/* syscall finished, restore & returning */
@@ -54,7 +54,6 @@ _syscall_lstar:
 	popq %r11		/* rflags, see above */
 	popq %rsp		/* rsp */
 	sysretq
-
 
 /* Calling from compatible mode, actually we don't expect this */
 .globl _syscall_cstar

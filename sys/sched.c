@@ -170,7 +170,7 @@ struct task_struct *create_task(const char *name)
 {
 	struct elf64_executable exe;
 	struct task_struct *task;
-	struct context *ctx;
+	struct pt_regs *regs;
 	page_t *page;
 	int rval = 0;
 	volatile int d = 1;
@@ -214,37 +214,34 @@ struct task_struct *create_task(const char *name)
 	/* Allocate kernel stack for it
 	 * also initialize the stack content for first run */
 	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE;
-	task->context = (struct context *)(task->stack - sizeof(struct context));
-	ctx = task->context;
-	ctx->ss = 0x23;
-	ctx->rsp = USTACK_TOP;
-	ctx->rflags = DEFAULT_USER_RFLAGS;
-	ctx->cs = 0x2B;
-	ctx->rip = (uint64_t)exe.entry;
-	ctx->rax = 0x0;
-	ctx->rbx = 0x0;
-	ctx->rcx = (uint64_t)exe.entry;
-	ctx->rdx = 0x0;
-	ctx->rdi = 0x0;
-	ctx->rsi = 0x0;
-	ctx->rbp = 0x0;
-	ctx->r8 = 0x0;
-	ctx->r9 = 0x0;
-	ctx->r10 = 0x0;
-	ctx->r11 = DEFAULT_USER_RFLAGS;
-	ctx->r12 = 0x0;
-	ctx->r13 = 0x0;
-	ctx->r14 = 0x0;
-	ctx->r15 = 0x0;
+	task->context = NULL;
+	regs = task->stack - sizeof(struct pt_regs);
+	regs->ss = 0x23;
+	regs->rsp = USTACK_TOP;
+	regs->rflags = DEFAULT_USER_RFLAGS;
+	regs->cs = 0x2B;
+	regs->rip = (uint64_t)exe.entry;
+	regs->rax = 0x0;
+	regs->rbx = 0x0;
+	regs->rcx = (uint64_t)exe.entry;
+	regs->rdx = 0x0;
+	regs->rdi = 0x0;
+	regs->rsi = 0x0;
+	regs->rbp = 0x0;
+	regs->r8 = 0x0;
+	regs->r9 = 0x0;
+	regs->r10 = 0x0;
+	regs->r11 = DEFAULT_USER_RFLAGS;
+	regs->r12 = 0x0;
+	regs->r13 = 0x0;
+	regs->r14 = 0x0;
+	regs->r15 = 0x0;
 
 	while (d);
 
-	task->files[0] = &files[0];
-	files[0].ref += 1;
-	task->files[1] = &files[1];
-	files[1].ref += 1;
-	task->files[2] = &files[2];
-	files[2].ref += 1;
+	task->files[0] = file_dup(&files[0]);
+	task->files[1] = file_dup(&files[1]);
+	task->files[2] = file_dup(&files[2]);
 
 	task->state = TASK_RUNNABLE;
 

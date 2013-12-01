@@ -78,7 +78,7 @@ uint64_t sys_kill(struct pt_regs *regs)
 
 uint64_t sys_getpid(struct pt_regs *regs)
 {
-	return 0;
+	return current->pid;
 }
 
 uint64_t sys_open(struct pt_regs *regs)
@@ -109,7 +109,7 @@ uint64_t sys_write(struct pt_regs *regs)
 	return regs->rax;
 }
 
-uint64_t sys_seek(struct pt_regs *regs)
+uint64_t sys_lseek(struct pt_regs *regs)
 {
 	return 0;
 }
@@ -158,8 +158,8 @@ uint64_t syscall_common(struct pt_regs *regs)
 		return sys_read(regs);
 	case SYS_write:
 		return sys_write(regs);
-	case SYS_seek:
-		return sys_seek(regs);
+	case SYS_lseek:
+		return sys_lseek(regs);
 	case SYS_getdents:
 		return sys_getdents(regs);
 	case SYS_mmap:

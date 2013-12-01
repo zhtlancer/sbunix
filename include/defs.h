@@ -33,6 +33,15 @@ typedef uint64_t size_t;
 
 typedef int pid_t;
 
+typedef uint64_t intptr_t;
+
+typedef int64_t off_t;
+
+struct dirent {
+};
+
+typedef uint32_t mode_t;
+
 #endif
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

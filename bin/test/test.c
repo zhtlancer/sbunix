@@ -17,7 +17,7 @@ int main()
 	if (pid == 0) {
 		*(uint64_t *)0x7fffffffeff0 = 0xdeadbeef;
 		d = 1;
-		printf("I'm child\n");
+		printf("I'm child, pid=%d\n", getpid());
 	} else {
 		*(uint64_t *)0x7fffffffeff0 = 0xdeadbeef;
 		d = 2;

@@ -304,7 +304,7 @@ struct task_struct *duplicate_task(void)
 	return task;
 }
 
-pid_t fork(void)
+pid_t do_fork(void)
 {
 	struct task_struct *new;
 
@@ -315,6 +315,7 @@ pid_t fork(void)
 
 	/* Set child's return value to 0 */
 	new->tf->rax = 0;
+	current->tf->rax = new->pid;
 
 	new->state = TASK_RUNNABLE;
 	

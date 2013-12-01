@@ -8,7 +8,9 @@
 
 SYSCALL_PROTO(0)(uint64_t n) {
 	uint64_t rval;
-	__asm__ volatile("syscall": "=a"(rval) : "D"(n): "r10", "r11", "rcx");
+	__asm__ volatile("movq %1, %%rax\n\t"
+			"syscall"
+			: "=a"(rval) : "D"(n): "r10", "r11", "rcx");
 	return rval;
 }
 
@@ -54,6 +56,7 @@ SYSCALL_PROTO(4)(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4)
 	return rval;
 }
 
+pid_t fork(void);
 size_t read(int fd, void *buf, size_t nbyte);
 size_t write(int fd, const void *buf, size_t nbyte);
 

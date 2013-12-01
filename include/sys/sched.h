@@ -121,11 +121,9 @@ void scheduler(void);
 
 void swtch(struct context **old, struct context *new);
 
-void swtch_to(struct context *new);
-
 void _switch_to_usermode(uint64_t cr3, void *stack);
 
-void _jump_to_usermode(void *func, void *stack);
+pid_t do_fork(void);
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

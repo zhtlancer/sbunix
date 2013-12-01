@@ -48,7 +48,7 @@ int syscall_init(void)
 
 uint64_t sys_fork(struct pt_regs *regs)
 {
-	return 0;
+	return do_fork();
 }
 
 uint64_t sys_sleep(struct pt_regs *regs)

@@ -7,10 +7,18 @@ int temp;
 
 int main()
 {
+	pid_t pid;
 	static volatile unsigned int d = 0xdeadbeef;
 	int test;
-	*(uint64_t *)0xdeadbeef = 0;
 	test = printf("%s", TEST);
+
+	pid = fork();
+
+	if (pid == 0) {
+		printf("I'm child\n");
+	} else {
+		printf("I'm parent, child id=%d\n", pid);
+	}
 
 	printf("%d\n", test);
 

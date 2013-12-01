@@ -1,5 +1,7 @@
 
 #include <defs.h>
+#include <sys/io.h>
+#include <sys/pci.h>
 #include <sys/mm.h>
 #include <sys/k_stdio.h>
 
@@ -73,6 +75,16 @@ init_page
 }/* init_page() */
 
 
+page_t *
+get_page_from_pa
+(
+    addr_t pa
+)
+{
+    uint64_t page_idx = (uint64_t)(pa>>__PAGE_SIZE_SHIFT)-(uint64_t)page_index_begin;
+    return (page_struct_begin+page_idx);
+}/* get_page_from_pa() */
+
 
 page_t *
 get_page_from_va
@@ -86,16 +98,27 @@ get_page_from_va
 }/* get_page_from_va() */
 
 
-
-/* FIXME: should be deprecated in the future */
 void *
-get_va_from_page
+get_va_from_page /* for kernel space mapping */
 (
     page_t  *page
 )
 {
     return (void *)(page->va);
 }/* get_va_from_page() */
+
+
+void *
+get_va_from_pa /* for kernel space mapping */
+(
+    addr_t  pa
+)
+{
+    addr_t  page_va     = (addr_t)get_va_from_page( get_page_from_pa(pa) );
+    addr_t  offset      = pa & (addr_t)0xFFF;
+    return (void *)(page_va|offset);
+
+} /* get_va_from_pa() */
 
 
 addr_t
@@ -116,7 +139,7 @@ get_page_from_pgt
 {
     uint64_t page_idx = (uint64_t)(pgt_tmp->paddr)-(uint64_t)page_index_begin;
     return (page_struct_begin+page_idx);
-} /* get_page_from_pa() */
+} /* get_page_from_pgt() */
 
 
 
@@ -126,7 +149,9 @@ get_pa_from_va
     void    *va
 )
 {
-    return get_pa_from_page( get_page_from_va(va) );
+    addr_t  offset  = (addr_t)va & (addr_t)0xFFF;
+    addr_t  page_pa = get_pa_from_page( get_page_from_va(va) );
+    return  page_pa + offset;
 }/* get_pa_from_page() */
 
 
@@ -216,8 +241,8 @@ alloc_free_pages
         page_tmp->va    = kvma_end;
     }
 
-    k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
-              num, page_start->va, page_start->flag, page_start->kmalloc_size );
+    //k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
+    //          num, page_start->va, page_start->flag, page_start->kmalloc_size );
     return page_start;
 }/* alloc_free_pages() */
 
@@ -377,8 +402,8 @@ kmalloc
             return NULL;
         }
         page_start->kmalloc_size = page_num;
-        k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
-                  page_num, page_start->va, page_start->flag, page_start->kmalloc_size );
+        //k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
+        //          page_num, page_start->va, page_start->flag, page_start->kmalloc_size );
         return (void *)(page_start->va);
     }
 
@@ -487,7 +512,7 @@ get_object
 
             obj_addr = (((i*64)+j)*size) + start + (addr_t)objcache_tmp;
             objcache_tmp->free -= 1;
-            k_printf( 0, "inside get_object: (%2d %2d) size=%4d, addr=%64x\n", i, j, size, obj_addr);
+            //k_printf( 0, "inside get_object: (%2d %2d) size=%4d, addr=%64x\n", i, j, size, obj_addr);
 
         } /* find first 1 in bmap */
     } /* travel the objcache pages */
@@ -536,6 +561,8 @@ objcache_t *objcache_n4k_head;       /* near 4k      */
 /*- Object Cache
  *--------------------------------------------------------*/
 
+
+
 int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 {
 	struct smap_t {
@@ -580,6 +607,7 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
          calculate the physical address of a page using its page structure
     */
 
+
 	k_printf( 0, "memsize : %x\n", mem_length );
 	k_printf( 0, "pagenum : %x\n", page_num   );
 
@@ -607,7 +635,6 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
     /* set the end of kernel memory space to the start of free pages: FIXME: value not used */
 	kvma_end        = page_begin_addr;
 	k_printf( 0, "pg begin addr: %p\n", page_begin_addr);
-
 
     /*---------------------------------------
 	 * initialize default kernel space page tables
@@ -640,6 +667,11 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	addr = ( (addr_t)&kernofs | def_pgt_paddr_lv1 ) + (8*PGT_ENTRY_LV1_KERNEL );
 	set_pgt_entry( addr, def_pgt_paddr_lv2, PGT_P, PGT_EXE,
 			0x0, 0x0, PGT_RW | PGT_SUP );
+
+	/* set lv2 page table entry: kernel page: 3G to 4G for PCI BARs -> doesn't work, don't know why */
+	//addr = ( (addr_t)&kernofs | def_pgt_paddr_lv2 ) + (8*PGT_ENTRY_LV2_PCI    );
+	//set_pgt_entry( addr, (addr_t)0xC0000000,PGT_P, PGT_EXE,
+	//		0x0, 0x0, PGT_RW | PGT_SUP | PGT_PS);
 
 	/* set lv2 page table entry: kernel page table to lv3 */
 	addr = ( (addr_t)&kernofs | def_pgt_paddr_lv2 ) + (8*PGT_ENTRY_LV2_KERNEL );
@@ -720,7 +752,7 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
     objcache_mm_struct_head = create_objcache( 0x0, sizeof(mm_struct_t) );
 
 
-
+#if 0 /* begin of test codes */
 
     /*---------------------------------------
      * TEST: allocate/free pages
@@ -756,7 +788,6 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	k_printf ( 0, "kvma_end=%x\n", kvma_end );
 
 
-#if 0 /* begin of test codes */
 
     /*---------------------------------------
      * TEST: get/return object caches

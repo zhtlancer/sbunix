@@ -64,6 +64,67 @@ get_pgt_entry
 } /* get_pgt_entry() */
 
 
+void *
+map_pa_kernel (
+    addr_t      paddr   , /* page PA  which will be mapped to VA            */ 
+    uint08_t    nx      , /* for page table entry: nx bit                   */
+    uint08_t    avl_1   , /* for page table entry: available to software    */
+    uint16_t    avl_2   , /* for page table entry: available to software    */
+    uint08_t    flag_pgt  /* for page table entry: flags for page table     */
+)
+{
+    pgt_t	*pgt_tmp    ;
+    page_t	*page_tmp   ;
+    addr_t	pa_tmp      ;
+	void	*va_tmp;
+    
+    kvma_end = (kvma_end&0xFFF) ? (kvma_end&0xFFFFFFFFFFFFF000)+0x1000
+                                : kvma_end;
+	addr_t	addr = kvma_end;
+
+	k_printf( 0, "map pa to %16P\n", addr );
+
+    pgt_tmp         = get_pgt_entry_lv1( addr );
+    if ( !(pgt_tmp->present)  ) {
+	    k_printf( 0, "lv1\n", addr );
+	    page_tmp    = alloc_page( PG_PGT | PG_SUP | PG_OCP );
+	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
+		va_tmp		= get_va_from_page(page_tmp);
+	    init_pgt( va_tmp );
+        set_pgt_entry_lv1( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+    }
+
+    pgt_tmp         = get_pgt_entry_lv2( addr );
+    if ( !(pgt_tmp->present)  ) {
+	    k_printf( 0, "lv2\n", addr );
+	    page_tmp    = alloc_page( PG_PGT | PG_SUP | PG_OCP );
+	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
+		va_tmp		= get_va_from_page(page_tmp);
+	    init_pgt( va_tmp );
+        set_pgt_entry_lv2( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+    }
+
+    pgt_tmp         = get_pgt_entry_lv3( addr );
+    if ( !(pgt_tmp->present)  ) {
+	    k_printf( 0, "lv3\n", addr );
+	    page_tmp    = alloc_page( PG_PGT | PG_SUP | PG_OCP );
+	    pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );	
+		va_tmp		= get_va_from_page(page_tmp);
+	    init_pgt( va_tmp );
+        set_pgt_entry_lv3( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+    }
+
+    pgt_tmp         = get_pgt_entry_lv4( addr );
+    if ( !(pgt_tmp->present)  ) {
+	    k_printf( 0, "lv4\n", addr );
+        set_pgt_entry_lv4( addr, paddr, PGT_P, nx, avl_1, avl_2, flag_pgt );
+    }
+
+	kvma_end += __PAGE_SIZE;
+    return (void *)(addr);
+} /* map_pa_kernel */
+
+
 /* map a page using self-reference technique */
 /* FIXME: not tested yet */
 int
@@ -119,7 +180,7 @@ map_page_self (
         else {
             pa_tmp      = paddr;
         }       
-        set_pgt_entry_lv4( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag );
+        set_pgt_entry_lv4( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
     }
 
     return 0;
@@ -193,7 +254,7 @@ map_page (
         else {
             pa_tmp      = paddr;
         }       
-        set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, flag );
+        set_pgt_entry( (addr_t)pgt_tmp, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
     }
 
     return 0;

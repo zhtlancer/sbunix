@@ -1,6 +1,7 @@
 CC=gcc
 AS=as
 CFLAGS=-O1 -std=c99 -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -mtune=amdfam10 -g3 -include include/sys/config.h
+#CFLAGS=-O1 -std=c99 -Wall -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -mtune=amdfam10 -g3 -include include/sys/config.h
 LD=ld
 LDLAGS=-nostdlib
 AR=ar
@@ -81,18 +82,18 @@ all: $(USER).iso
 new: clean all
 
 r:
-	qemu-system-x86_64 -curses -cdrom $(USER).iso -hda $(USER).img -gdb tcp::2424
+	qemu-system-x86_64-ahci -curses -cdrom $(USER).iso -hda $(USER).img -gdb tcp::2424
 
 rg:
-	qemu-system-x86_64 -curses -cdrom $(USER).iso -hda $(USER).img -gdb tcp::2424 -S
+	qemu-system-x86_64-ahci -curses -cdrom $(USER).iso -hda $(USER).img -gdb tcp::2424 -S
 
 # run QEMU with AHCI and network
 
 ra:
-	qemu-system-x86_64 -curses -cdrom $(USER).iso -drive id=disk,file=$(USER).img,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -net nic -net user,hostfwd=tcp::10080-:80 -net user,hostfwd=tcp::10023-:23 -gdb tcp::2424
+	qemu-system-x86_64-ahci -curses -cdrom $(USER).iso -drive id=disk,file=$(USER).img,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -net nic -net user,hostfwd=tcp::10080-:80 -net user,hostfwd=tcp::10023-:23 -gdb tcp::2424
 
 rag: 
-	qemu-system-x86_64 -curses -cdrom $(USER).iso -drive id=disk,file=$(USER).img,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -net nic -net user,hostfwd=tcp::10080-:80 -net user,hostfwd=tcp::10023-:23 -gdb tcp::2424 -S
+	qemu-system-x86_64-ahci -curses -cdrom $(USER).iso -drive id=disk,file=$(USER).img,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -net nic -net user,hostfwd=tcp::10080-:80 -net user,hostfwd=tcp::10023-:23 -gdb tcp::2424 -S
 
 g:
 	gdb kernel 

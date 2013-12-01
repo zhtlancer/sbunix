@@ -13,6 +13,7 @@
 #define PGT_ENTRY_LV1_SELFREF       256
 #define PGT_ENTRY_LV1_KERNEL        511
 #define PGT_ENTRY_LV2_KERNEL        510
+#define PGT_ENTRY_LV2_PCI           511
 
 #define __PAGE_STRUCT_SIZE_SHIFT    5                               /*bytes*/
 #define __PAGE_STRUCT_SIZE          (1<<__PAGE_STRUCT_SIZE_SHIFT)   /*bytes*/
@@ -69,6 +70,12 @@ init_page
 //    addr_t      addr    /* the start physical address of page structure */
 //);
 
+page_t *
+get_page_from_pa
+(
+    addr_t  pa
+);
+
 
 page_t *
 get_page_from_va
@@ -80,6 +87,12 @@ void *
 get_va_from_page
 (
     page_t  *page
+);
+
+void *
+get_va_from_pa /* for kernel space mapping */
+(
+    addr_t  pa
 );
 
 addr_t

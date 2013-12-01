@@ -3,6 +3,11 @@
 
 #include <defs.h>
 
+static inline void lcr3(uint64_t cr3)
+{
+	__asm__ volatile("movq %0, %%cr3" : : "r" (cr3));
+}
+
 static inline uint64_t rcr2(void)
 {
 	uint64_t cr2;

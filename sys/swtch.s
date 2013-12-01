@@ -10,30 +10,44 @@ swtch:
 	// Save old context
 	pushq %rax
 	pushq %rbx
-	pushq %rsi
+	pushq %rcx
+	pushq %rdx
 	pushq %rdi
+	pushq %rsi
+	pushq %rbp
+	pushq %r8
+	pushq %r9
+	pushq %r10
+	pushq %r11
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15
 
 	// Switch stack pointer
 	movq %rsp, (%rdi)
 	movq %rsi, %rsp
 
 	// Restore new context
-	popq %rdi
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12
+	popq %r11
+	popq %r10
+	popq %r9
+	popq %r8
+	popq %rbp
 	popq %rsi
+	popq %rdi
+	popq %rdx
+	popq %rcx
 	popq %rbx
 	popq %rax
 
 	// Return to new context
 	ret
 
-.globl swtch_to
-swtch_to:
-	movq %rdi, %rsp
-	popq %rdi
-	popq %rsi
-	popq %rbx
-	popq %rax
-	ret
 /* 1: CR3, 2: target RSP, 3: target RIP */
 .globl _switch_to_usermode
 _switch_to_usermode:

@@ -56,6 +56,7 @@ struct context {
 	uint64_t r11;
 	uint64_t r10;
 	uint64_t r9;
+	uint64_t r8;
 	/* we don't save rsp here */
 	uint64_t rbp;
 	uint64_t rsi;
@@ -65,7 +66,6 @@ struct context {
 	uint64_t rbx;
 	uint64_t rax;
 	uint64_t rip;
-	uint64_t rflags;
 };
 
 /*
@@ -123,7 +123,11 @@ void swtch(struct context **old, struct context *new);
 
 void _switch_to_usermode(uint64_t cr3, void *stack);
 
-pid_t do_fork(void);
+pid_t fork(void);
+
+void yield(void);
+
+int kill(pid_t pid);
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -8,6 +8,7 @@
 #include <sys/error.h>
 #include <sys/gdt.h>
 #include <sys/syscall.h>
+#include <sys/x86.h>
 
 #define sched_error(fmt, ...)	\
 	k_printf(1, "<ELF> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
@@ -28,29 +29,7 @@ struct {
 
 struct task_struct *current;
 
-#if TEST_SCHED
-uint8_t stack_a[1024];
-uint8_t stack_b[1024];
-
-struct context *pa = (struct context *)(stack_a+1024-sizeof(struct context));
-struct context *pb = (struct context *)(stack_b+1024-sizeof(struct context));
-
-static void a(void)
-{
-	for (;;) {
-		k_printf(0, "Hello\n");
-		swtch(&pa, pb);
-	}
-}
-
-static void b(void)
-{
-	for (;;) {
-		k_printf(0, "World\n");
-		swtch(&pb, pa);
-	}
-}
-#endif
+struct context *scheduler_ctx;
 
 static int alloc_pid(void)
 {
@@ -74,44 +53,26 @@ int sched_init(void)
 	return 0;
 }
 
-#if TEST_SCHED
-void usermode()
-{
-	for ( ; ; )
-		;
-}
-
-static void sched_test()
-{
-	volatile int d=1;
-	while (d);
-	_jump_to_usermode(usermode, (void *)USTACK_TOP);
-}
-#endif
-
 /*
  * The main loop for SBUNIX
  * this function should never return
  */
 void scheduler(void)
 {
-#if TEST_SCHED
-	sched_test();
-	/* FIXME: This is a swtch test, remove this */
-	volatile unsigned int d = 0;
-	if (0) {
-		pa->rip = (uint64_t)&a;
-		pb->rip = (uint64_t)&b;
-		pb->rax = 0;
-		pb->rbx = 0;
-		pb->rsi = 0;
-		pb->rdi = 0;
-
-		swtch_to(pa);
-	}
-#endif
+	static int idx = 0;
+	struct task_struct *task;
 
 	for ( ; ; ) {
+		/* lock the table if necessary */
+		if ((task = &task_table.tasks[idx])->state == TASK_RUNNABLE) {
+			current = task;
+			task->state = TASK_RUNNING;
+			tss_set_kernel_stack(task->stack);
+			lcr3(task->cr3);
+			swtch(&scheduler_ctx, task->context);
+		}
+
+		idx = (idx + 1) % NPROC;
 	}
 
 	k_printf(0, "Oops! Why are we here?!\n");
@@ -164,6 +125,8 @@ void free_task(struct task_struct *task)
 {
 }
 
+void fork_ret(void);
+
 /*
  * Create a process from scratch (ELF file)
  */
@@ -175,6 +138,7 @@ struct task_struct *create_task(const char *name)
 	page_t *page;
 	int rval = 0;
 	volatile int d = 1;
+	void *k_stack;
 
 	while (d);
 	task = alloc_task();
@@ -215,8 +179,8 @@ struct task_struct *create_task(const char *name)
 	/* Allocate kernel stack for it
 	 * also initialize the stack content for first run */
 	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE;
-	task->context = NULL;
-	regs = task->stack - sizeof(struct pt_regs);
+	k_stack = task->stack - sizeof(struct pt_regs);
+	regs = k_stack;
 	regs->ss = 0x23;
 	regs->rsp = USTACK_TOP;
 	regs->rflags = DEFAULT_USER_RFLAGS;
@@ -239,7 +203,13 @@ struct task_struct *create_task(const char *name)
 	regs->r15 = 0x0;
 	task->tf = regs;
 
-	while (d);
+	k_stack -= 8;
+	*(uint64_t *)k_stack = (uint64_t)_syscall_lstar_ret;
+
+	k_stack -= sizeof(struct context);
+	task->context = (struct context *)k_stack;
+	memset(task->context, 0, sizeof(struct context));
+	task->context->rip = (uint64_t)fork_ret;
 
 	task->files[0] = file_dup(&files[0]);
 	task->files[1] = file_dup(&files[1]);
@@ -247,23 +217,18 @@ struct task_struct *create_task(const char *name)
 
 	task->state = TASK_RUNNABLE;
 
+#if TEST_SCHED
 	current = task;
-
 	task->state = TASK_RUNNING;
-
 	tss_set_kernel_stack(task->stack);
 	_switch_to_usermode(task->cr3, task->tf);
+#endif
 
 	return task;
 
 fail_task:
 	free_task(task);
 	return NULL;
-}
-
-void fork_ret(void)
-{
-	/* Fake return call for forked child, no function should directly call this */
 }
 
 /*
@@ -281,12 +246,6 @@ struct task_struct *duplicate_task(void)
 	task->mm = mm_struct_dup();
 	task->cr3 = get_pa_from_va(task->mm->pgt);
 
-	/* Dup opened files */
-	for (i = 0; i < NFILE_PER_PROC; i++) {
-		if (current->files[i] != NULL)
-			task->files[i] = file_dup(current->files[i]);
-	}
-
 	/* Allocate kernel stack, and fill it with sensible data */
 	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE;
 	k_stack = task->stack - sizeof(struct pt_regs);
@@ -301,10 +260,23 @@ struct task_struct *duplicate_task(void)
 	memset(task->context, 0, sizeof(struct context));
 	task->context->rip = (uint64_t)fork_ret;
 
+	/* Dup opened files */
+	for (i = 0; i < NFILE_PER_PROC; i++) {
+		if (current->files[i] != NULL)
+			task->files[i] = file_dup(current->files[i]);
+	}
+
 	return task;
 }
 
-pid_t do_fork(void)
+void fork_ret(void)
+{
+	/* Fake return call for forked child and first process
+	 * no function should directly call this
+	 */
+}
+
+pid_t fork(void)
 {
 	struct task_struct *new;
 
@@ -320,6 +292,26 @@ pid_t do_fork(void)
 	new->state = TASK_RUNNABLE;
 	
 	return new->pid;
+}
+
+void sched(void)
+{
+	if (current->state == TASK_RUNNING) {
+		sched_error("Task[%d] running!\n", current->pid);
+		panic("Unexpected scheduler behavior!\n");
+	}
+	swtch(&current->context, scheduler_ctx);
+}
+
+void yield(void)
+{
+	current->state = TASK_RUNNABLE;
+	sched();
+}
+
+int kill(pid_t pid)
+{
+	return -1;
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -3,6 +3,9 @@
 
 #include <defs.h>
 
+#define SCHED_INTERVEL	100;
+extern uint64_t jiffies;
+
 void PIT_init(uint16_t freq);
 
 #endif

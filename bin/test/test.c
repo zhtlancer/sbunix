@@ -15,8 +15,12 @@ int main()
 	pid = fork();
 
 	if (pid == 0) {
+		*(uint64_t *)0x7fffffffeff0 = 0xdeadbeef;
+		d = 1;
 		printf("I'm child\n");
 	} else {
+		*(uint64_t *)0x7fffffffeff0 = 0xdeadbeef;
+		d = 2;
 		printf("I'm parent, child id=%d\n", pid);
 	}
 

@@ -96,6 +96,7 @@ void isr_common(uint64_t irq, uint64_t error_code, struct pt_regs *regs)
 
 }
 
+extern void x86_64_asm_irq_12();
 extern void x86_64_asm_irq_14();
 extern void x86_64_asm_irq_32();
 extern void x86_64_asm_irq_33();
@@ -105,6 +106,16 @@ int idt_setup(void)
 {
     int_gate_t *pit_int_gate;
 	uint64_t isr_addr;
+
+	/* Stack-segment Fault */
+    pit_int_gate = (void *)(&idt[2*14]);
+    isr_addr = (uint64_t)(&x86_64_asm_irq_12);
+    pit_int_gate->offsetLo  = (uint16_t)(isr_addr&0xFFFF); 
+    pit_int_gate->segSel    = (uint16_t)0x8; 
+    pit_int_gate->attr      = (uint16_t)(TYPE_IG64|DESC_P|DESC_DPL0); 
+    pit_int_gate->offsetMi  = (uint16_t)((isr_addr>>16)&0xFFFF); 
+    pit_int_gate->offsetHi  = (uint32_t)((isr_addr>>32)&0xFFFFFFFF); 
+    pit_int_gate->resZero   = (uint32_t)0;
 
 	/* Page Fault */
     pit_int_gate = (void *)(&idt[2*14]);

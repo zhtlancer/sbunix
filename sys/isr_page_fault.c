@@ -46,8 +46,9 @@ void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 			page_t *page = get_page_from_pgt(pgt);
 			void *va = get_va_from_page(page);
 			pf_db("COW page met, create new page.\n");
-			map_page_self(cr2, 1, 0, PG_USR, pgt->nx, pgt->avl_1 & ~PGT_AVL_COW,
+			remap_page_self(cr2, 1, 0, PG_USR, pgt->nx, pgt->avl_1 & ~PGT_AVL_COW,
 					pgt->avl_2, pgt->flag | PGT_RW);
+			flush_tlb();
 			memcpy((void *)PGROUNDDOWN(cr2), va, __PAGE_SIZE);
 		}
 	}

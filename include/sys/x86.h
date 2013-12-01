@@ -15,5 +15,11 @@ static inline uint64_t rcr2(void)
 	__asm__ volatile("movq %%cr2, %0" : "=r" (cr2));
 	return cr2;
 }
+
+static inline void flush_tlb(void)
+{
+	__asm__ volatile("movq	%%cr3, %%rax\n\t"
+			"movq	%%rax, %%cr3" : : : "rax");
+}
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

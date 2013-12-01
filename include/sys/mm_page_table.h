@@ -40,7 +40,6 @@ get_pgt_entry
     addr_t      va
 );
 
-
 /* map a page using self-reference technique */
 int
 map_page_self (
@@ -54,6 +53,18 @@ map_page_self (
     uint08_t    flag_pgt  /* for page table entry: flags for page table     */
 );
 
+/* remap a formerly mapped page */
+int
+remap_page_self (
+    addr_t      addr    , /* virtual address                                */
+    uint08_t    newpage , /* 1-> mape a new page; 0-> mape above PA         */  
+    addr_t      paddr   , /* page PA  which will be mapped to VA            */ 
+    uint08_t    flag    , /* for page            : flags for page           */
+    uint08_t    nx      , /* for page table entry: nx bit                   */
+    uint08_t    avl_1   , /* for page table entry: available to software    */
+    uint16_t    avl_2   , /* for page table entry: available to software    */
+    uint08_t    flag_pgt  /* for page table entry: flags for page table     */
+);
 
 /* map a new page for another process */
 /* FIXME: not tested yet */

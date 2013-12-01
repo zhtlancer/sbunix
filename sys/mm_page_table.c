@@ -2,6 +2,7 @@
 #include <defs.h>
 #include <sys/mm.h>
 #include <sys/k_stdio.h>
+#include <sys/x86.h>
 
 #define PGT_MID_FLAG(x)	(((x) & PGT_FLAG_MASK) | PGT_FLAG_ENABLE)
 
@@ -10,6 +11,8 @@
 /* Force enable some flags in middle level of page mapping */
 #define PGT_FLAG_ENABLE	(PGT_RW )
 
+#define mm_error(fmt, ...)	\
+	k_printf(1, "<MM> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
 
 /* initialize a page table */
 int
@@ -132,6 +135,58 @@ map_page_self (
     return 0;
 } /* map_page_self */
 
+/* remap a formerly mapped page */
+int
+remap_page_self (
+    addr_t      addr    , /* virtual address                                */
+    uint08_t    newpage , /* 1-> mape a new page; 0-> mape above PA         */
+    addr_t      paddr   , /* page PA  which will be mapped to VA            */
+    uint08_t    flag    , /* for page            : flags for page           */
+    uint08_t    nx      , /* for page table entry: nx bit                   */
+    uint08_t    avl_1   , /* for page table entry: available to software    */
+    uint16_t    avl_2   , /* for page table entry: available to software    */
+    uint08_t    flag_pgt  /* for page table entry: flags for page table     */
+)
+{
+	page_t *page_tmp;
+    pgt_t	*pgt_tmp    ;
+	addr_t pa_tmp;
+    
+    pgt_tmp         = get_pgt_entry_lv1_self( addr );
+    if ( !(pgt_tmp->present)  ) {
+		mm_error("Remapping encounters non-existing lv1 entry at %p\n", addr);
+		return -1;
+    }
+
+    pgt_tmp         = get_pgt_entry_lv2_self( addr );
+    if ( !(pgt_tmp->present)  ) {
+		mm_error("Remapping encounters non-existing lv2 entry at %p\n", addr);
+		return -1;
+    }
+
+    pgt_tmp         = get_pgt_entry_lv3_self( addr );
+    if ( !(pgt_tmp->present)  ) {
+		mm_error("Remapping encounters non-existing lv3 entry at %p\n", addr);
+		return -1;
+    }
+
+    pgt_tmp         = get_pgt_entry_lv4_self( addr );
+    if ( !(pgt_tmp->present)  ) {
+		mm_error("Remapping encounters non-existing lv4 entry at %p\n", addr);
+		return -1;
+	}
+	if ( newpage ) {
+		page_tmp    = alloc_page( flag );
+		pa_tmp      = (addr_t)(get_pa_from_page( page_tmp ) );
+	}
+	else {
+		pa_tmp      = paddr;
+	}
+
+	set_pgt_entry_lv4_self( addr, pa_tmp, PGT_P, nx, avl_1, avl_2, flag_pgt );
+
+    return 0;
+} /* map_page_self */
 
 /* map a new page for another process */
 /* FIXME: not tested yet */
@@ -557,10 +612,10 @@ dup_upgt_self (
 								pgt_tmp->flag);
 					} else {
 						/* mark both parent and child as COW */
-						map_page(dst, va, 0, get_pa_from_va((void *)va), PG_USR,
+						map_page(dst, va, 0, pgt_tmp->paddr << __PAGE_SIZE_SHIFT, PG_USR,
 								pgt_tmp->nx, pgt_tmp->avl_1 | PGT_AVL_COW,
 								pgt_tmp->avl_2, pgt_tmp->flag & ~(PGT_RW));
-						map_page_self(va, 0, get_pa_from_va((void *)va), PG_USR,
+						remap_page_self(va, 0, pgt_tmp->paddr << __PAGE_SIZE_SHIFT, PG_USR,
 								pgt_tmp->nx, pgt_tmp->avl_1 | PGT_AVL_COW,
 								pgt_tmp->avl_2, pgt_tmp->flag & ~(PGT_RW));
 					}
@@ -568,6 +623,8 @@ dup_upgt_self (
 			}
 		}
 	}
+	/* XXX: flushing the TLB is necessary here, as the PTE may be changed */
+	flush_tlb();
 	return 0;
 }
 

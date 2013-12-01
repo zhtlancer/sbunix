@@ -11,13 +11,23 @@ _x86_64_asm_lidt:
 
 	retq
 
+/* Stack-fault exception */
+.global x86_64_asm_irq_12
+x86_64_asm_irq_12:
+	xchgq	(%rsp), %rax		/* error code */
+	pushq	%rbx
+	pushq	%rcx
+    movq	$12, %rbx			/* interrupt number */
+    movabsq $._x86_64_asm_irq_common, %rcx
+    jmpq    *%rcx
+
 /* Page-fault exception */
 .global x86_64_asm_irq_14
 x86_64_asm_irq_14:
 	xchgq	(%rsp), %rax		/* error code */
 	pushq	%rbx
 	pushq	%rcx
-    movq	$14, %rbx			/* IRQ number */
+    movq	$14, %rbx			/* interrupt number */
     movabsq $._x86_64_asm_irq_common, %rcx
     jmpq    *%rcx
 
@@ -27,7 +37,7 @@ x86_64_asm_irq_32:
 	pushq	%rax
 	pushq	%rbx
 	pushq	%rcx
-    movq	$32, %rbx			/* IRQ number */
+    movq	$32, %rbx			/* interrupt number */
 	movq	$0, %rax			/* error code */
     movabsq $._x86_64_asm_irq_common, %rcx
     jmpq    *%rcx
@@ -38,7 +48,7 @@ x86_64_asm_irq_33:
 	pushq	%rax
 	pushq	%rbx
 	pushq	%rcx
-    movq	$33, %rbx			/* IRQ number */
+    movq	$33, %rbx			/* interrupt number */
 	movq	$0, %rax			/* error code */
     movabsq $._x86_64_asm_irq_common, %rcx
     jmpq    *%rcx

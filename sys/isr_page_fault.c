@@ -5,6 +5,7 @@
 //#include <sys/pic.h>
 #include <sys/sched.h>
 #include <sys/x86.h>
+#include <sys/string.h>
 
 #define PF_EC_P		0x01
 #define PF_EC_RW	0x02
@@ -31,5 +32,24 @@ void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 		panic("Unhandled page fault\n");
 	}
 
+	/* Non-existing mapping */
+	if (!(ec & PF_EC_P)) {
+		if ((cr2 < USTACK_TOP) && (cr2 >= USTACK_BOTTOM)) {
+			/* TODO: grow the user stack? */
+		}
+	}
+
+	/* caused by mem write, COW page? */
+	if (ec & PF_EC_RW) {
+		pgt_t *pgt = get_pgt_entry_lv4_self(cr2);
+		if ((pgt->avl_1 & PGT_AVL_COW) && !(pgt->flag & PGT_RW)) {
+			page_t *page = get_page_from_pgt(pgt);
+			void *va = get_va_from_page(page);
+			pf_db("COW page met, create new page.\n");
+			map_page_self(cr2, 1, 0, PG_USR, pgt->nx, pgt->avl_1 & ~PGT_AVL_COW,
+					pgt->avl_2, pgt->flag | PGT_RW);
+			memcpy((void *)PGROUNDDOWN(cr2), va, __PAGE_SIZE);
+		}
+	}
 }
 /* vim: set ts=4 sw=0 tw=0 noet : */

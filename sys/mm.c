@@ -99,7 +99,9 @@ get_page_from_va
 
 
 
-/* FIXME: should be deprecated in the future */
+/* FIXME: should be deprecated in the future
+ * FIX: Actually this gives the va mapping in kernel space, can be used safely
+ */
 void *
 get_va_from_page
 (

@@ -10,6 +10,9 @@
 #define __PAGE_SIZE_MASK            0xFFF
 #define __PAGE_SIZE                 (1<<__PAGE_SIZE_SHIFT)          /*bytes*/
 
+#define PGROUNDUP(sz) (((sz)+__PAGE_SIZE-1) & ~(__PAGE_SIZE - 1))
+#define PGROUNDDOWN(a) (((a)) & ~(__PAGE_SIZE - 1))
+
 #define PGT_ENTRY_LV1_SELFREF       256
 #define PGT_ENTRY_LV1_KERNEL        511
 #define PGT_ENTRY_LV2_KERNEL        510
@@ -54,7 +57,6 @@
 #define PG_OBJ      0x0020 // object cache
 #define PG_KMA      0x0040 // allocated by kmalloc
 #define PG_VMA      0x0080 // allocated by vmalloc
-
 
 #define OBJCACHE_HEADER_SIZE 80 /* in bytes */
 

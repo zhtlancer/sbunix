@@ -231,7 +231,7 @@ mm_struct_dup(void)
 	set_pgt_entry( addr, def_pgt_paddr_lv2, PGT_P, PGT_EXE,
 			0x0, 0x0, PGT_RW | PGT_SUP );
 
-	/* Duplicate user address space (except the stack) */
+	/* Duplicate user address space (including user stack) */
 	dup_upgt_self(mm_new->pgt);
 
     return mm_new;

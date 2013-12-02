@@ -3,6 +3,7 @@
 #include <sys/io.h>
 #include <sys/pci.h>
 #include <sys/mm.h>
+#include <sys/msr.h>
 #include <sys/k_stdio.h>
 
 #define mm_error(fmt, ...)	\
@@ -731,16 +732,13 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	vma_set( &kvma_head, (addr_t)&kernofs, kvma_end,
 			NULL, NULL, 0, 0, 0, 0, 0 );
 
-    /* read/write MSR register */
-	uint32_t reg_temp_lo;
-	uint32_t reg_temp_hi;
-	__asm__ volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
-	k_printf ( 0, "efer_hi=%X", ((uint64_t)reg_temp_hi<<32)+reg_temp_lo );
-	reg_temp_lo |= 0x800;
-	__asm__ volatile("wrmsr" : : "a"(reg_temp_lo), "d"(reg_temp_hi),  "c"(0xC0000080));
-	__asm__ volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
-	k_printf ( 0, "efer_hi=%X", ((uint64_t)reg_temp_hi<<32)+reg_temp_lo );
-
+    /* read/write MSR: set EFER NXE bit */
+    uint64_t msr_temp;
+    msr_temp = rdmsr(MSR_ADDR_EFER);
+	//k_printf( 0, "efer_hi=%X", msr_temp );
+    msr_temp |= EFER_NXE;
+	wrmsr(MSR_ADDR_EFER, (uint32_t)(msr_temp & 0xFFFFFFFF), (uint32_t)(msr_temp >> 32));
+	//k_printf( 0, "efer_hi=%X", msr_temp );
 
     /*---------------------------------------
 	 * create kernel object caches

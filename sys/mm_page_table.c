@@ -93,8 +93,6 @@ map_pa_kernel (
                                 : kvma_end;
 	addr_t	addr = kvma_end;
 
-	k_printf( 0, "map pa to %16P\n", addr );
-
     pgt_tmp         = get_pgt_entry_lv1_self( addr );
     if ( !(pgt_tmp->present)  ) {
 	    k_printf( 0, "lv1\n", addr );

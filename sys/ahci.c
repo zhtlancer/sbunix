@@ -416,7 +416,6 @@ ahci_find_cmdslot
 void
 ahci_init ()
 {
-    int i, j;
 
     //uint32_t volatile *hba_DW = (uint32_t volatile *)(map_pa_kernel(0xFEBF0000, 0, 0, 0, PGT_SUP | PGT_EXE | PGT_RW ) );
     hba_mem_0 = (hba_mem_t *)( map_pa_kernel(0xFEBF0000, 0, 0, 0, PGT_SUP | PGT_EXE | PGT_RW ) );  
@@ -433,24 +432,27 @@ ahci_init ()
     
     ahci_port_rebase( &(hba_mem_0->ports[0]) );
 
-    //ahci_db( 0, "hba_mem_0->ports[0]->clb(u) = 0x%08X%08X\n", hba_mem_0->ports[0].clbu, hba_mem_0->ports[0].clb );
-    //ahci_db( 0, "hba_mem_0->ports[0]->fb (u) = 0x%08X%08X\n", hba_mem_0->ports[0].fbu , hba_mem_0->ports[0].fb  );
+    //ahci_db( "hba_mem_0->ports[0]->clb(u) = 0x%08X%08X\n", hba_mem_0->ports[0].clbu, hba_mem_0->ports[0].clb );
+    //ahci_db( "hba_mem_0->ports[0]->fb (u) = 0x%08X%08X\n", hba_mem_0->ports[0].fbu , hba_mem_0->ports[0].fb  );
 
+#if TEST_AHCI
+
+    int i, j;
     // 1 sector = 512 byte, 8 sector = 4k = 1page
     void *ahci_buf = __get_free_pages( PG_SUP, 4 );
     if ( ahci_read( &(hba_mem_0->ports[0]), 0, 0, 128, ahci_buf ) )
-        ahci_db( "AHCI read OK!\n" );
+        k_printf( 0, "AHCI read OK!\n" );
     else
-        ahci_db( "AHCI read Error!\n" );
+        k_printf( 0, "AHCI read Error!\n" );
 
     uint08_t *ahci_buf_byte = (uint08_t *)ahci_buf;
     for ( i=0; i<1; i++ )
         for ( j=0; j<16; j++ )  {
             if ( (j%16)==0 ) 
-                ahci_db( "\n" );
-            ahci_db( "%02X ", *(ahci_buf_byte++) );
+                k_printf( 0, "\n" );
+            k_printf( 0, "%02X ", *(ahci_buf_byte++) );
         }   
-    ahci_db( "\n" );
+    k_printf( 0, "\n" );
 
     ahci_buf_byte = (uint08_t *)ahci_buf;
     *(ahci_buf_byte++) = '0';
@@ -471,9 +473,9 @@ ahci_init ()
     *(ahci_buf_byte++) = 'F';
 
     if ( ahci_write( &(hba_mem_0->ports[0]), 0, 0, 128, ahci_buf ) )
-        ahci_db( "AHCI write OK!\n" );
+        k_printf( 0, "AHCI write OK!\n" );
     else
-        ahci_db( "AHCI write Error!\n" );
+        k_printf( 0, "AHCI write Error!\n" );
 
     ahci_buf_byte = (uint08_t *)ahci_buf;
     for ( i=0; i<1; i++ )
@@ -485,23 +487,23 @@ ahci_init ()
     for ( i=0; i<1; i++ )
         for ( j=0; j<16; j++ )  {
             if ( (j%16)==0 ) 
-                ahci_db( "\n" );
-            ahci_db( "%02X ", *(ahci_buf_byte++) );
+                k_printf( 0, "\n" );
+            k_printf( 0, "%02X ", *(ahci_buf_byte++) );
         }   
-    ahci_db( 0, "\n" );
+    k_printf( 0, "\n" );
 
     if ( ahci_read( &(hba_mem_0->ports[0]), 0, 0, 128, ahci_buf ) )
-        ahci_db( "AHCI read OK!\n" );
+        k_printf( 0, "AHCI read OK!\n" );
     else
-        ahci_db( "AHCI read Error!\n" );
+        k_printf( 0, "AHCI read Error!\n" );
 
     ahci_buf_byte = (uint08_t *)ahci_buf;
     for ( i=0; i<1; i++ )
         for ( j=0; j<16; j++ )  {
             if ( (j%16)==0 ) 
-                ahci_db( "\n" );
-            ahci_db( "%02X ", *(ahci_buf_byte++) );
+                k_printf( 0, "\n" );
+            k_printf( 0, "%02X ", *(ahci_buf_byte++) );
         }   
-    ahci_db( "\n" );
-    
+    k_printf( 0, "\n" );
+#endif    
 }

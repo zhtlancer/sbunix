@@ -40,6 +40,8 @@
 #define ATA_CMD_READ_DMA_EX     0x25
 #define ATA_CMD_WRITE_DMA_EX    0x35
 
+#define AHCI_DEFAULT_PORT       0
+#define AHCI_DEV0_PA            0xFEBF0000
 
 /*-------------------------------------------------------------------------
  * Structure
@@ -456,6 +458,22 @@ ahci_write(
     uint32_t        starth  ,
     uint32_t        count   ,
     void            *buf
+);
+
+
+int
+readsect
+(
+    void        *dst,
+    uint64_t    lba
+);
+
+
+int
+writesect
+(
+    void        *src,
+    uint64_t    lba
 );
 
 

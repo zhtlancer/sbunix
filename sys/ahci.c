@@ -17,7 +17,7 @@
 #define ahci_db(fmt, ...)
 #endif
 
-#define TEST_AHCI 0
+#define TEST_AHCI 1
 
 
 /*-------------------------------------------------------------------------
@@ -413,12 +413,46 @@ ahci_find_cmdslot
 }
 
 
+int
+readsect
+(
+    void        *dst,
+    uint64_t    lba
+)
+{
+    return ahci_read(
+                        &(hba_mem_0->ports[AHCI_DEFAULT_PORT]),
+                        (uint32_t)( lba     &0xFFFFFFFF), 
+                        (uint32_t)((lba>>32)&0xFFFFFFFF),
+                        1,
+                        dst
+                    );
+} /* readsect() */
+
+
+int
+writesect
+(
+    void        *src,
+    uint64_t    lba
+)
+{
+    return ahci_write(
+                        &(hba_mem_0->ports[AHCI_DEFAULT_PORT]),
+                        (uint32_t)( lba     &0xFFFFFFFF), 
+                        (uint32_t)((lba>>32)&0xFFFFFFFF),
+                        1,
+                        src
+                     );
+} /* writesect() */
+
+
 void
 ahci_init ()
 {
 
     //uint32_t volatile *hba_DW = (uint32_t volatile *)(map_pa_kernel(0xFEBF0000, 0, 0, 0, PGT_SUP | PGT_EXE | PGT_RW ) );
-    hba_mem_0 = (hba_mem_t *)( map_pa_kernel(0xFEBF0000, 0, 0, 0, PGT_SUP | PGT_EXE | PGT_RW ) );  
+    hba_mem_0 = (hba_mem_t *)( map_pa_kernel(AHCI_DEV0_PA, 0, 0, 0, PGT_SUP | PGT_EXE | PGT_RW ) );  
  
 
 
@@ -430,7 +464,7 @@ ahci_init ()
 
     ahci_probe_port( hba_mem_0 ); 
     
-    ahci_port_rebase( &(hba_mem_0->ports[0]) );
+    ahci_port_rebase( &(hba_mem_0->ports[AHCI_DEFAULT_PORT]) );
 
     //ahci_db( "hba_mem_0->ports[0]->clb(u) = 0x%08X%08X\n", hba_mem_0->ports[0].clbu, hba_mem_0->ports[0].clb );
     //ahci_db( "hba_mem_0->ports[0]->fb (u) = 0x%08X%08X\n", hba_mem_0->ports[0].fbu , hba_mem_0->ports[0].fb  );
@@ -483,16 +517,17 @@ ahci_init ()
             *(ahci_buf_byte++)=0;
         }   
 
-    ahci_buf_byte = (uint08_t *)ahci_buf;
-    for ( i=0; i<1; i++ )
-        for ( j=0; j<16; j++ )  {
-            if ( (j%16)==0 ) 
-                k_printf( 0, "\n" );
-            k_printf( 0, "%02X ", *(ahci_buf_byte++) );
-        }   
-    k_printf( 0, "\n" );
+    //ahci_buf_byte = (uint08_t *)ahci_buf;
+    //for ( i=0; i<1; i++ )
+    //    for ( j=0; j<16; j++ )  {
+    //        if ( (j%16)==0 ) 
+    //            k_printf( 0, "\n" );
+    //        k_printf( 0, "%02X ", *(ahci_buf_byte++) );
+    //    }   
+    //k_printf( 0, "\n" );
 
-    if ( ahci_read( &(hba_mem_0->ports[0]), 0, 0, 128, ahci_buf ) )
+    //if ( ahci_read( &(hba_mem_0->ports[0]), 0, 0, 128, ahci_buf ) )
+    if ( readsect( ahci_buf, 0 ) )
         k_printf( 0, "AHCI read OK!\n" );
     else
         k_printf( 0, "AHCI read Error!\n" );

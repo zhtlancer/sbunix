@@ -2,6 +2,7 @@
 #include <sys/mm.h>
 
 #include <sys/fs.h>
+#include <sys/io.h>
 
 unsigned char vgatext_x = 0;
 unsigned char vgatext_y = 0;
@@ -20,6 +21,23 @@ k_puts(
     return s_len-1;
 }
 
+static void move_cursor(uint8_t row, uint8_t col)
+{
+	int pos;
+
+	if (row >= __VGATEXT_MAX_Y || col >= __VGATEXT_MAX_X) {
+		return;
+	}
+
+	pos = row * 80 + col;
+
+	outb(0x3D4, 0x0F);
+	outb(0x3D5, (uint8_t)(pos & 0xFF));
+
+	outb(0x3D4, 0x0E);
+	outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+}
+
 int vgatext_scroll()
 {
     addr_t vgatext_pos = vgatext_vbase;
@@ -31,15 +49,17 @@ int vgatext_scroll()
         )
         __memput_char( vgatext_pos,
                        __memget_char(vgatext_pos+(__VGATEXT_MAX_X<<1)) );
-            
+
 
     /* clean the least line */
-    for ( ; 
+    for ( ;
           vgatext_pos<vgatext_vbase+((__VGATEXT_MAX_X*(__VGATEXT_MAX_Y)  )<<1);
-          vgatext_pos++ 
-        )
-        __memput_char( vgatext_pos, (char)0 );
-    
+          vgatext_pos+=2
+        ) {
+		__memput_char( vgatext_pos, 0x07 );
+		__memput_char( vgatext_pos, ' ' );
+	}
+
 
     return 0;
 }
@@ -99,8 +119,7 @@ int vgatext_putchar(const char c)
             vgatext_x++;
         break;
     }
-
-
+	move_cursor(vgatext_y, vgatext_x);
 
     return 0; 
 }

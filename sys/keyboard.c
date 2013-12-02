@@ -4,6 +4,11 @@
 
 uint64_t kbd_counter;
 
+#define KBD_BUF_SZ	512
+
+uint8_t kbd_buf[KBD_BUF_SZ];
+int kbd_buf_pos = 0;
+
 char scanCode2Ascii[128] = { /*0x00*/    0,  27, '1', '2',
     /*0x04*/  '3', '4', '5', '6',
     /*0x08*/  '7', '8', '9', '0',
@@ -59,7 +64,16 @@ char scanCode2AsciiShift[128] = {
 #define KBD_SC1_LSHIFT_R 0xAA 
 #define KBD_SC1_RSHIFT_R 0xB6 
 
-uint08_t kbd_shift; 
+uint08_t kbd_shift;
+
+int k_putchar(unsigned char lvl, const char c);
+
+void kbd_fill_echo(uint8_t ch)
+{
+	if (kbd_buf_pos < KBD_BUF_SZ)
+		kbd_buf[kbd_buf_pos++] = ch;
+	k_putchar(0, ch);
+}
 
 /* FIXME: this extern reference should be removed in the future */
 extern addr_t vgatext_vbase;
@@ -69,6 +83,7 @@ void isr_kbd()
     //register char *temp2;
     uint08_t scanCode[6];
     uint08_t release;
+	uint8_t ch;
 
     scanCode[0] = inb( 0x60 );
 
@@ -76,7 +91,7 @@ void isr_kbd()
 
     if      ( ( scanCode[0]==KBD_SC1_LSHIFT_P ||
 		scanCode[0]==KBD_SC1_RSHIFT_P    ) &&
-	    kbd_shift==0                              
+	    kbd_shift==0
 	    ) 
 	kbd_shift = 1;
     else if ( ( scanCode[0]==KBD_SC1_LSHIFT_R ||
@@ -85,17 +100,20 @@ void isr_kbd()
 	    ) 
 	kbd_shift = 0;
 
-    if ( scanCode2Ascii[scanCode[0]]!=0 && !release ) {
-	temp1  = (char*)(vgatext_vbase+0xF9A);
-	if ( kbd_shift )
-	    *temp1 = scanCode2AsciiShift[scanCode[0]];
-	else
-	    *temp1 = scanCode2Ascii[scanCode[0]];
+	if ( scanCode2Ascii[scanCode[0]]!=0 && !release ) {
+		temp1  = (char*)(vgatext_vbase+0xF9A);
+		if ( kbd_shift )
+			ch = scanCode2AsciiShift[scanCode[0]];
+		else
+			ch = scanCode2Ascii[scanCode[0]];
 
+		*temp1 = ch;
+		kbd_fill_echo(ch);
     }
 
 
     kbd_counter++;
+
 
     PIC_eoi(1);
 }

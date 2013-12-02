@@ -184,7 +184,14 @@ static struct inode *tarfs_path_lookup(struct inode *parent, const char *path)
 
 static size_t tarfs_read(struct inode *inode, void *dst, off_t off, size_t n)
 {
-	return 0;
+	size_t size;
+	TAR_FILE *fp = (TAR_FILE *)inode->priv_data;
+
+	size = fp->size - off;
+	size = size > n ? n : size;
+	memcpy(dst, fp->_ptr+off, size);
+
+	return size;
 }
 
 static size_t tarfs_write(struct inode *inode, void *src, off_t off, size_t n)
@@ -220,6 +227,7 @@ int tarfs_init()
 	fp = kmalloc(sizeof(TAR_FILE), PG_SUP);
 	/* point to the last block */
 	fp->_header = (struct posix_header_ustar *)(&_binary_tarfs_end - TARFS_BLOCK_SIZE);
+	inode->priv_data = (TAR_FILE *)fp;
 	inode->fs_ops = &tarfs_ops;
 
 	put_inode(inode);

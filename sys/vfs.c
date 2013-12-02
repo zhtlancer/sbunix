@@ -111,7 +111,7 @@ static int parse_name(const char *path)
 	if ((j-i) >= NAME_MAX)
 		return 0;
 
-	strlcpy(_name_buf, path+i, NAME_MAX);
+	strlcpy(_name_buf, path+i, j-i+1);
 
 	return j;
 }

@@ -217,7 +217,7 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 			if (size < phdr.filesz) {
 				size_t sec_size = phdr.filesz - size;
 				sec_size = sec_size < avail_size ? sec_size : avail_size;
-				iexe->fs_ops->read(iexe, k_addr, size, sec_size);
+				iexe->fs_ops->read(iexe, k_addr, phdr.offset+size, sec_size);
 			}
 			/* FIXME: Is it OK to use the same flags for page and page-table? */
 			elf_db("mapping %p, flags = %x\n", usr_addr + size, flags);
@@ -235,7 +235,7 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 			if (size < phdr.filesz) {
 				size_t sec_size = phdr.filesz - size;
 				sec_size = sec_size < __PAGE_SIZE ? sec_size : __PAGE_SIZE;
-				iexe->fs_ops->read(iexe, k_addr, size, sec_size);
+				iexe->fs_ops->read(iexe, k_addr, phdr.offset+size, sec_size);
 			}
 
 			/* FIXME: Is it OK to use the same flags for page and page-table? */

@@ -30,6 +30,8 @@ struct dev {
 	size_t (*seek)(struct dev *dev, size_t offset, int pos);
 	size_t (*read)(struct dev *dev, void *buf, size_t n);
 	size_t (*write)(struct dev *dev, void *buf, size_t n);
+	int (*readsect)(struct dev *dev, void *dst, size_t lba);
+	int (*writesect)(struct dev *dev, void *src, size_t lba);
 };
 
 int dev_init(void);

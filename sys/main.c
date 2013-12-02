@@ -12,6 +12,7 @@
 #include <sys/console.h>
 #include <sys/dev.h>
 #include <sys/fs.h>
+#include <sys/sbfs.h>
 
 #include <sys/mm.h>
 
@@ -27,6 +28,8 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	vfs_init();
 
 	tarfs_init();
+
+	sbfs_init();
 
 	console_init();
 

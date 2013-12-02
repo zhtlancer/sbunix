@@ -10,34 +10,42 @@
 #define __PAGE_SIZE_MASK            0xFFF
 #define __PAGE_SIZE                 (1<<__PAGE_SIZE_SHIFT)          /*bytes*/
 
+#define PGROUNDUP(sz) (((sz)+__PAGE_SIZE-1) & ~(__PAGE_SIZE - 1))
+#define PGROUNDDOWN(a) (((a)) & ~(__PAGE_SIZE - 1))
+
 #define PGT_ENTRY_LV1_SELFREF       256
 #define PGT_ENTRY_LV1_KERNEL        511
 #define PGT_ENTRY_LV2_KERNEL        510
-#define PGT_ENTRY_LV2_PCI           511
 
 #define __PAGE_STRUCT_SIZE_SHIFT    5                               /*bytes*/
 #define __PAGE_STRUCT_SIZE          (1<<__PAGE_STRUCT_SIZE_SHIFT)   /*bytes*/
 
 #define PGT_ENTRY_NUM               512
 
-#define PGT_NP      0
+#define PGT_NP      0		/* [0] */
 #define PGT_P       1
 
-#define PGT_EXE     0
+#define PGT_EXE     0		/* [63]? */
 #define PGT_NX      1
 
-#define PGT_RO      0x00
+#define PGT_RO      0x00	/* [1] */
 #define PGT_RW      0x01
 
-#define PGT_SUP     0x00
+#define PGT_SUP     0x00	/* [2] */
 #define PGT_USR     0x02
 
-#define PGT_PWT     0x04
-#define PGT_PCD     0x08
-#define PGT_PS      0x40
-#define PGT_G       0x80
+#define PGT_PWT     0x04	/* [3] */
+#define PGT_PCD     0x08	/* [4] */
+#define PGT_A  	    0x10	/* [5] accessed */
+#define PGT_D	    0x20	/* [6] dirty */
+#define PGT_PS      0x40 	/* [7] only for lv2,lv3 */
+#define PGT_G       0x80	/* [8] only for last level */
 
 #define PGT_PAT     1
+
+/* flags values for avl_1 */
+#define PGT_AVL_SHARE	0x2	/* [10] Shared pte */
+#define PGT_AVL_COW	0x4	/* [11] Copy-on-write pte */
 
 #define PG_FRE      0x0000 // free
 #define PG_OCP      0x0001 // occupied
@@ -50,9 +58,18 @@
 #define PG_KMA      0x0040 // allocated by kmalloc
 #define PG_VMA      0x0080 // allocated by vmalloc
 
-
 #define OBJCACHE_HEADER_SIZE 80 /* in bytes */
 
+/* Top of user address space(excluding) */
+#define UVMA_TOP	(0x0000800000000000UL)
+/* Top of user stack */
+#define USTACK_TOP		(UVMA_TOP - __PAGE_SIZE)
+#define USTACK_LIMIT	(3 * __PAGE_SIZE)
+#define USTACK_BOTTOM	(USTACK_TOP - USTACK_LIMIT)
+/* Top of normal user address space */
+#define UNORMAL_TOP		(USTACK_BOTTOM - __PAGE_SIZE)
+
+/* TODO: Maybe a illustration of our VM space here? */
 
 /* initialize page structures */
 int

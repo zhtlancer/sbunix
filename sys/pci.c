@@ -5,6 +5,18 @@
 #include <sys/pci.h>
 
 
+#define pci_error(fmt, ...)	\
+	k_printf(1, "<PCI> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+
+#if DEBUG_PCI
+#define pci_db(fmt, ...)	\
+	k_printf(1, "<PCI DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+#else
+#define pci_db(fmt, ...)
+#endif
+
+#define TEST_PCI 0
+
 /*-------------------------------------------------------------------------
  * Global Variable
  *-------------------------------------------------------------------------
@@ -125,7 +137,7 @@ pci_init()
     pci_dev_nr          = 0;
     pci_dev_type0_nr    = 0;
 
-    k_printf( 0, "\nPCI Enumerating...\n" );
+    pci_db( "\nPCI Enumerating...\n" );
     for ( i=0; i<256; i++ ) { /* Enumerate 256 buses */
         for ( j=0; j<32; j++ ) { /* Enumerate 32 devices */
 
@@ -173,8 +185,8 @@ pci_init()
                     //class       = pci_config_read_16( i, j, 0, PCI_CFG_REG_CLS     );
                     //header_type = pci_config_read_08( i, j, 0, PCI_CFG_REG_HTYPE   );
                     //pif         = pci_config_read_08( i, j, 0, PCI_CFG_REG_PIF   );
-                    //k_printf( 0, "Bus %3d, Dev %2d, VID=0x%4X, Class/Sub=0x%4X, HType=0x%2X, ProgIF=0x%2X\n", i, j, vid, class, header_type, pif );
-                    //k_printf( 0, "BAR: 0x%8X, 0x%8X, 0x%8X, 0x%8X, 0x%8X, 0x%8X\n", 
+                    //pci_db( "Bus %3d, Dev %2d, VID=0x%4X, Class/Sub=0x%4X, HType=0x%2X, ProgIF=0x%2X\n", i, j, vid, class, header_type, pif );
+                    //pci_db( "BAR: 0x%8X, 0x%8X, 0x%8X, 0x%8X, 0x%8X, 0x%8X\n", 
                     //          pci_config_read_32( i, j, 0, PCI_CFG_REG_BAR0 ), 
                     //          pci_config_read_32( i, j, 0, PCI_CFG_REG_BAR1 ),
                     //          pci_config_read_32( i, j, 0, PCI_CFG_REG_BAR2 ),
@@ -182,7 +194,7 @@ pci_init()
                     //          pci_config_read_32( i, j, 0, PCI_CFG_REG_BAR4 ),
                     //          pci_config_read_32( i, j, 0, PCI_CFG_REG_BAR5 )
                     //        );
-                    //k_printf( 0, "\n" );
+                    //pci_db( "\n" );
                     
                 } /* if found device with header type 0 */
             } /* if found device */
@@ -191,7 +203,7 @@ pci_init()
 
     } /* enumerate 256 buses */
 
-    //k_printf( 0, "Total %2d PCI devices, %2d of them with header type 0\n", pci_dev_nr, pci_dev_type0_nr );
+    //pci_db( "Total %2d PCI devices, %2d of them with header type 0\n", pci_dev_nr, pci_dev_type0_nr );
 
 
 } /* init_pci() */

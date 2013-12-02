@@ -3,6 +3,8 @@
 #include <sys/string.h>
 #include <sys/mm.h>
 #include <sys/error.h>
+#include <sys/fs.h>
+#include <sys/dev.h>
 
 #define TARFS_BLOCK_SIZE	512
 
@@ -12,6 +14,8 @@
 #else
 #define tarfs_db(fmt, ...)
 #endif
+
+static struct fs_operations tarfs_ops;
 
 /*
  * Convert octal number string to uint64_t data
@@ -66,16 +70,7 @@ static void tarfs_test()
 }
 #endif
 
-int tarfs_init()
-{
-#if DEBUG_TARFS
-	tarfs_test();
-#endif
-
-	return 0;
-}
-
-TAR_FILE *tarfs_fopen(const char *name)
+static TAR_FILE *tarfs_fopen(const char *name)
 {
 	TAR_FILE *fp;
 	struct posix_header_ustar *p = (struct posix_header_ustar *)&_binary_tarfs_start;
@@ -103,7 +98,8 @@ TAR_FILE *tarfs_fopen(const char *name)
 	return NULL;
 }
 
-size_t tarfs_fread(void *ptr, size_t size, size_t nmemb, TAR_FILE *fp)
+#if 0
+static size_t tarfs_fread(void *ptr, size_t size, size_t nmemb, TAR_FILE *fp)
 {
 	
 	if (fp->_ptr >= fp->_end)
@@ -120,7 +116,7 @@ size_t tarfs_fread(void *ptr, size_t size, size_t nmemb, TAR_FILE *fp)
 	return size;
 }
 
-int tarfs_fseek(TAR_FILE *fp, long offset, int whence)
+static int tarfs_fseek(TAR_FILE *fp, long offset, int whence)
 {
 	uint8_t *ptr;
 	switch (whence) {
@@ -149,10 +145,86 @@ int tarfs_fseek(TAR_FILE *fp, long offset, int whence)
 
 	return 0;
 }
+#endif
 
-void tarfs_close(TAR_FILE *fp)
+static void tarfs_fclose(TAR_FILE *fp)
 {
 	kfree(fp);
+}
+
+/* We don't have on-disk hierarchy, just build the full path look for */
+static struct inode *tarfs_path_lookup(struct inode *parent, const char *path)
+{
+	char full_path[TARFS_NAME_MAX];
+	size_t i, j;
+	TAR_FILE *tmp;
+	TAR_FILE *fp = (TAR_FILE *)parent->priv_data;
+	struct inode *inode;
+	i = strlcpy(full_path, fp->_header->name, TARFS_NAME_MAX);
+	for (j = 0; path[j] != '\0' && path[j] == '/'; j++)
+		;
+	strlcpy(full_path+i, path+j, TARFS_NAME_MAX);
+
+	tmp = tarfs_fopen(full_path);
+	if (tmp == NULL)
+		return NULL;
+
+	inode = get_inode(NULL);
+	inode->priv_data = tmp;
+	if (full_path[strlen(full_path)-1] == '/')
+		inode->p_inode.type = IT_DIR;
+	else
+		inode->p_inode.type = IT_FILE;
+	inode->p_inode.size = tmp->size;
+	inode->dev_num = DEV_TARFS;
+	inode->fs_ops = &tarfs_ops;
+
+	return inode;
+}
+
+static size_t tarfs_read(struct inode *inode, void *dst, off_t off, size_t n)
+{
+	return 0;
+}
+
+static size_t tarfs_write(struct inode *inode, void *src, off_t off, size_t n)
+{
+	panic("Tarfs doesn't support write\n");
+	return 0;
+}
+
+static void tarfs_close(struct inode *inode)
+{
+	TAR_FILE *fp = (TAR_FILE *)inode->priv_data;
+	tarfs_fclose(fp);
+	inode->priv_data = NULL;
+}
+
+static struct fs_operations tarfs_ops = {
+	.path_lookup	= tarfs_path_lookup,
+	.read			= tarfs_read,
+	.write			= tarfs_write,
+	.close			= tarfs_close,
+};
+
+int tarfs_init()
+{
+	TAR_FILE *fp;
+	struct inode *inode;
+#if DEBUG_TARFS
+	tarfs_test();
+#endif
+
+	inode = get_inode(rootfs);
+
+	fp = kmalloc(sizeof(TAR_FILE), PG_SUP);
+	/* point to the last block */
+	fp->_header = (struct posix_header_ustar *)(&_binary_tarfs_end - TARFS_BLOCK_SIZE);
+	inode->fs_ops = &tarfs_ops;
+
+	put_inode(inode);
+
+	return 0;
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

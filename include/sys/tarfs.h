@@ -3,6 +3,8 @@
 
 #include <defs.h>
 
+#define TARFS_NAME_MAX	100
+
 extern char _binary_tarfs_start;
 extern char _binary_tarfs_end;
 
@@ -37,10 +39,6 @@ typedef struct tarfs_file TAR_FILE;
 
 int tarfs_init(void);
 
-TAR_FILE *tarfs_fopen(const char *name);
-
-size_t tarfs_fread(void *ptr, size_t size, size_t nmemb, TAR_FILE *fp);
-
 enum TARFS_SEEK {
 	TARFS_SEEK_SET = 0,
 	TARFS_SEEK_CUR = 1,
@@ -48,8 +46,6 @@ enum TARFS_SEEK {
 };
 
 int tarfs_fseek(TAR_FILE *fp, long offset, int whence);
-
-void tarfs_close(TAR_FILE *fp);
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

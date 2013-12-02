@@ -22,6 +22,9 @@
 
 #define TEST_SCHED 0
 
+/* The very first userspace executable */
+#define USER_INIT	"/bin/test"
+
 struct {
 	/* FIXME: maybe we need a lock to protect this */
 	struct task_struct tasks[NPROC];
@@ -48,7 +51,7 @@ int sched_init(void)
 	}
 
 	/* Create the very first user space process */
-	create_task("bin/test");
+	create_task(USER_INIT);
 
 	return 0;
 }

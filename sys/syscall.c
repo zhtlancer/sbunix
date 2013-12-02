@@ -78,7 +78,8 @@ uint64_t sys_kill(struct pt_regs *regs)
 
 uint64_t sys_getpid(struct pt_regs *regs)
 {
-	return current->pid;
+	regs->rax = current->pid;
+	return 0;
 }
 
 uint64_t sys_open(struct pt_regs *regs)
@@ -129,6 +130,9 @@ uint64_t sys_sbrk(struct pt_regs *regs)
 	return 0;
 }
 
+/*
+ * a1: rdi, a2: rsi, a3: rdx, a4: r8, a5: r9, a6: r12
+ */
 uint64_t syscall_common(struct pt_regs *regs)
 {
 	uint64_t syscall_no = regs->rax;

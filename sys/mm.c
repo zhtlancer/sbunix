@@ -1,7 +1,21 @@
 
 #include <defs.h>
+#include <sys/io.h>
+#include <sys/pci.h>
 #include <sys/mm.h>
 #include <sys/k_stdio.h>
+
+#define mm_error(fmt, ...)	\
+	k_printf(1, "<MM> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+
+#if DEBUG_MM
+#define mm_db(fmt, ...)	\
+	k_printf(1, "<MM DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+#else
+#define mm_db(fmt, ...)
+#endif
+
+#define TEST_MM 0
 
 uint32_t page_num;          /* total number of physical pages (4k each) */
 
@@ -73,6 +87,16 @@ init_page
 }/* init_page() */
 
 
+page_t *
+get_page_from_pa
+(
+    addr_t pa
+)
+{
+    uint64_t page_idx = (uint64_t)(pa>>__PAGE_SIZE_SHIFT)-(uint64_t)page_index_begin;
+    return (page_struct_begin+page_idx);
+}/* get_page_from_pa() */
+
 
 page_t *
 get_page_from_va
@@ -80,22 +104,33 @@ get_page_from_va
     void    *va
 )
 {
-    pgt_t *pgt_tmp = get_pgt_entry_lv4( (addr_t)va );
+    pgt_t *pgt_tmp = get_pgt_entry_lv4_self( (addr_t)va );
     uint64_t page_idx = (uint64_t)(pgt_tmp->paddr)-(uint64_t)page_index_begin;
     return (page_struct_begin+page_idx);
 }/* get_page_from_va() */
 
 
-
-/* FIXME: should be deprecated in the future */
 void *
-get_va_from_page
+get_va_from_page /* only for kernel space mapping */
 (
     page_t  *page
 )
 {
     return (void *)(page->va);
 }/* get_va_from_page() */
+
+
+void *
+get_va_from_pa /* for kernel space mapping */
+(
+    addr_t  pa
+)
+{
+    addr_t  page_va     = (addr_t)get_va_from_page( get_page_from_pa(pa) );
+    addr_t  offset      = pa & (addr_t)0xFFF;
+    return (void *)(page_va|offset);
+
+} /* get_va_from_pa() */
 
 
 addr_t
@@ -116,7 +151,7 @@ get_page_from_pgt
 {
     uint64_t page_idx = (uint64_t)(pgt_tmp->paddr)-(uint64_t)page_index_begin;
     return (page_struct_begin+page_idx);
-} /* get_page_from_pa() */
+} /* get_page_from_pgt() */
 
 
 
@@ -126,7 +161,9 @@ get_pa_from_va
     void    *va
 )
 {
-    return get_pa_from_page( get_page_from_va(va) );
+    addr_t  offset  = (addr_t)va & (addr_t)0xFFF;
+    addr_t  page_pa = get_pa_from_page( get_page_from_va(va) );
+    return  page_pa + offset;
 }/* get_pa_from_page() */
 
 
@@ -208,7 +245,7 @@ alloc_free_pages
             pgt_flag |= PGT_SUP;
 
 
-        set_pgt_entry_lv4( kvma_end, (page_tmp->idx)<<__PAGE_SIZE_SHIFT, PGT_P, PGT_NX,
+        set_pgt_entry_lv4_self( kvma_end, (page_tmp->idx)<<__PAGE_SIZE_SHIFT, PGT_P, PGT_NX,
                            0x0, 0x0, pgt_flag );
 
         page_tmp->flag  = flag | PG_OCP;
@@ -216,7 +253,7 @@ alloc_free_pages
         page_tmp->va    = kvma_end;
     }
 
-    k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
+    mm_db("alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
               num, page_start->va, page_start->flag, page_start->kmalloc_size );
     return page_start;
 }/* alloc_free_pages() */
@@ -292,7 +329,7 @@ __free_pages_anynumber
 
     int i;
     for ( i=0; i<num; ++i, page_tmp+=1 ) {
-        set_pgt_entry_lv4( (addr_t)(page_tmp->va), 0x0, PGT_NP, PGT_EXE,
+        set_pgt_entry_lv4_self( (addr_t)(page_tmp->va), 0x0, PGT_NP, PGT_EXE,
                            0x0, 0x0, PGT_SUP );
         __asm__ volatile("invlpg (%0)" ::"r" ((addr_t)page_tmp->va) : "memory");
         page_tmp->flag  = PG_FRE | PG_SUP;
@@ -377,7 +414,7 @@ kmalloc
             return NULL;
         }
         page_start->kmalloc_size = page_num;
-        k_printf( 0, "alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
+        mm_db("alloc %d page(s). address: %16x, flag: %4x, kmalloc_size: %4d \n",
                   page_num, page_start->va, page_start->flag, page_start->kmalloc_size );
         return (void *)(page_start->va);
     }
@@ -487,7 +524,7 @@ get_object
 
             obj_addr = (((i*64)+j)*size) + start + (addr_t)objcache_tmp;
             objcache_tmp->free -= 1;
-            k_printf( 0, "inside get_object: (%2d %2d) size=%4d, addr=%64x\n", i, j, size, obj_addr);
+            mm_db("inside get_object: (%2d %2d) size=%4d, addr=%64x\n", i, j, size, obj_addr);
 
         } /* find first 1 in bmap */
     } /* travel the objcache pages */
@@ -727,33 +764,35 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
      *---------------------------------------
      */
 
-	k_printf( 0, "find_free_page: %x\n", find_free_pages( 0x7bff  ) );
-	k_printf( 0, "find_free_page: %x\n", find_free_pages( 0x7bfe  ) );
+#if TEST_MM
+	mm_db("find_free_page: %x\n", find_free_pages( 0x7bff  ) );
+	mm_db("find_free_page: %x\n", find_free_pages( 0x7bfe  ) );
 
 	page_t *page_tmp = alloc_page( PG_SUP );
-	k_printf( 0, "alloc_page.index = %x\n", page_tmp->idx );
-	k_printf( 0, "alloc_page.va    = %x\n", page_tmp->va  );
+	mm_db("alloc_page.index = %x\n", page_tmp->idx );
+	mm_db("alloc_page.va    = %x\n", page_tmp->va  );
 
 
 	uint64_t *temp = (uint64_t *)kvma_end-0x100;
 	*temp = 0xDEADBEEF;
-	k_printf ( 0, "*temp   =%x\n", *temp );
-	k_printf ( 0, "kvma_end=%x\n", kvma_end );
+	mm_db("*temp   =%x\n", *temp );
+	mm_db("kvma_end=%x\n", kvma_end );
 
 	__free_pages( page_tmp, 0 );
 	void *page_tmp_va = get_zeroed_page( PG_SUP );
-	k_printf( 0, "get_zeroed_page.addr  = %x\n", page_tmp_va );
+	mm_db("get_zeroed_page.addr  = %x\n", page_tmp_va );
 
 
 	page_t *page_tmp1= get_page_from_va( (void *)(page_tmp->va) );
-	k_printf( 0, "get_page_from_va = %x\n", page_tmp1->idx );
-	k_printf( 0, "get_page_from_va = %x\n", page_tmp1->va  );
+	mm_db("get_page_from_va = %x\n", page_tmp1->idx );
+	mm_db("get_page_from_va = %x\n", page_tmp1->va  );
 
 
 	temp = (uint64_t *)kvma_end-0x100;
 	*temp = 0xDEADBEEF;
-	k_printf ( 0, "*temp   =%x\n", *temp );
-	k_printf ( 0, "kvma_end=%x\n", kvma_end );
+	mm_db("*temp   =%x\n", *temp );
+	mm_db("kvma_end=%x\n", kvma_end );
+#endif
 
 
 #if 0 /* begin of test codes */

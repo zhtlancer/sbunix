@@ -9,12 +9,12 @@
 /*
  * DEBUG switch for ELF
  */
-#define DEBUG_ELF	1
+#define DEBUG_ELF	0
 
 /*
  * DEBUG switch for scheduler
  */
-#define DEBUG_SCHED 1
+#define DEBUG_SCHED 0
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -97,6 +97,8 @@ struct task_struct {
 	/* Saved CR3 register (PA to page table)*/
 	addr_t cr3;
 
+	/* indicate if this proc has been killed */
+
 	/*
 	 * TODO:
 	 * # Filesystem related elements (current dir, opened files)

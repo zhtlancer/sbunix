@@ -9,6 +9,7 @@
 #include <sys/sched.h>
 #include <sys/string.h>
 #include <sys/sched.h>
+#include <sys/fs.h>
 
 #define elf_error(fmt, ...)	\
 	k_printf(1, "<ELF> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
@@ -102,12 +103,16 @@ int parse_elf_executable(struct elf64_executable *exe)
 	int i, rval = 0;
 	struct elf64_header hdr;
 	struct elf64_phdr phdr;
-	TAR_FILE *fp;
+	struct inode *iexe;
 
 	elf_db("Parsing ELF '%s'\n", exe->name);
 
-	fp = tarfs_fopen(exe->name);
-	tarfs_fread(&hdr, sizeof(hdr), 1, fp);
+	iexe = path_lookup(NULL, exe->name);
+	if (iexe == NULL) {
+		elf_error("Cannot open %s!\n", exe->name);
+		panic("Failed to load the first user executable!\n");
+	}
+	iexe->fs_ops->read(iexe, &hdr, 0, sizeof(hdr));
 
 	if (verify_elf(&hdr)) {
 		elf_error("Verification error\n");
@@ -125,9 +130,8 @@ int parse_elf_executable(struct elf64_executable *exe)
 
 	elf_db("ELF entry: %p\n", exe->entry);
 
-	tarfs_fseek(fp, hdr.phoff, TARFS_SEEK_SET);
 	for (i = 0; i < hdr.phnum; i++) {
-		tarfs_fread(&phdr, sizeof(phdr), 1, fp);
+		iexe->fs_ops->read(iexe, &phdr, hdr.phoff+i*sizeof(phdr), sizeof(phdr));
 		elf_db("phdr[%x,%x]: %x\n", phdr.type, phdr.flags);
 		switch (phdr.type) {
 		case PT_LOAD:
@@ -163,7 +167,7 @@ int parse_elf_executable(struct elf64_executable *exe)
 #endif
 
 fail:
-	tarfs_close(fp);
+	put_inode(iexe);
 	return rval;
 }
 
@@ -172,12 +176,16 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 	int i, rval = 0;
 	struct elf64_header hdr;
 	struct elf64_phdr phdr;
-	TAR_FILE *fp;
+	struct inode *iexe;
 
 	elf_db("Loading ELF '%s'\n", exe->name);
 
-	fp = tarfs_fopen(exe->name);
-	tarfs_fread(&hdr, sizeof(hdr), 1, fp);
+	iexe = path_lookup(NULL, exe->name);
+	if (iexe == NULL) {
+		elf_error("Cannot open %s!\n", exe->name);
+		panic("Failed to load the first user executable!\n");
+	}
+	iexe->fs_ops->read(iexe, &hdr, 0, sizeof(hdr));
 
 	for (i = 0; i < hdr.phnum; i++) {
 		uint8_t flags = PGT_USR;
@@ -186,8 +194,7 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 		void *usr_addr;
 		size_t size;
 
-		tarfs_fseek(fp, hdr.phoff + i*sizeof(phdr), TARFS_SEEK_SET);
-		tarfs_fread(&phdr, sizeof(phdr), 1, fp);
+		iexe->fs_ops->read(iexe, &phdr, hdr.phoff + i*sizeof(phdr), sizeof(phdr));
 
 		if (phdr.type != PT_LOAD)
 			continue;
@@ -199,7 +206,6 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 
 		/* Allocate physical memory and load file content */
 		usr_addr = (void *)phdr.vaddr;
-		tarfs_fseek(fp, phdr.offset, TARFS_SEEK_SET);
 		size = 0;
 		{
 			/* the first 4KiB data */
@@ -211,7 +217,7 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 			if (size < phdr.filesz) {
 				size_t sec_size = phdr.filesz - size;
 				sec_size = sec_size < avail_size ? sec_size : avail_size;
-				tarfs_fread(k_addr, 1, sec_size, fp);
+				iexe->fs_ops->read(iexe, k_addr, phdr.offset+size, sec_size);
 			}
 			/* FIXME: Is it OK to use the same flags for page and page-table? */
 			elf_db("mapping %p, flags = %x\n", usr_addr + size, flags);
@@ -229,7 +235,7 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 			if (size < phdr.filesz) {
 				size_t sec_size = phdr.filesz - size;
 				sec_size = sec_size < __PAGE_SIZE ? sec_size : __PAGE_SIZE;
-				tarfs_fread(k_addr, 1, sec_size, fp);
+				iexe->fs_ops->read(iexe, k_addr, phdr.offset+size, sec_size);
 			}
 
 			/* FIXME: Is it OK to use the same flags for page and page-table? */
@@ -239,6 +245,8 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 			size += __PAGE_SIZE;
 		}
 	}
+
+	put_inode(iexe);
 
 	return rval;
 }

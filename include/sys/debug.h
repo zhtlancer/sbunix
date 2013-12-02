@@ -27,6 +27,7 @@
 #define DEBUG_PF 1
 
 /*
+<<<<<<< HEAD
  * DEBUG switch for PCI
  */
 #define DEBUG_PCI	0
@@ -35,6 +36,11 @@
  * DEBUG switch for AHCI
  */
 #define DEBUG_AHCI	0
+
+/*
+ * DEBUG switch for FS
+ */
+#define DEBUG_FS 1
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

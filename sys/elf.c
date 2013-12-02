@@ -123,7 +123,7 @@ int parse_elf_executable(struct elf64_executable *exe)
 
 	exe->entry = (void *)hdr.entry;
 
-	elf_db("ELF entry: %p", exe->entry);
+	elf_db("ELF entry: %p\n", exe->entry);
 
 	tarfs_fseek(fp, hdr.phoff, TARFS_SEEK_SET);
 	for (i = 0; i < hdr.phnum; i++) {
@@ -180,7 +180,9 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 	tarfs_fread(&hdr, sizeof(hdr), 1, fp);
 
 	for (i = 0; i < hdr.phnum; i++) {
-		uint8_t flags = PG_USR;
+		uint8_t flags = PGT_USR;
+		uint8_t nx = PGT_NX;
+
 		void *usr_addr;
 		size_t size;
 
@@ -192,7 +194,7 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 		if (phdr.flags & ELF_PH_FLAG_W)
 			flags |= PGT_RW;
 		if (phdr.flags & ELF_PH_FLAG_X)
-			flags |= PGT_EXE;
+			nx = PGT_EXE;
 		elf_db("[%d] flags = %x\n", i, flags);
 
 		/* Allocate physical memory and load file content */
@@ -212,9 +214,10 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 				tarfs_fread(k_addr, 1, sec_size, fp);
 			}
 			/* FIXME: Is it OK to use the same flags for page and page-table? */
+			elf_db("mapping %p, flags = %x\n", usr_addr + size, flags);
 			map_page(task->mm->pgt, (addr_t)usr_addr+size,
 					0, get_pa_from_page(page),
-					flags, 0, 0, 0, flags);
+					PG_USR, nx, 0, 0, flags);
 			size += avail_size;
 		}
 		while (size < phdr.memsz) {
@@ -232,7 +235,8 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 			/* FIXME: Is it OK to use the same flags for page and page-table? */
 			map_page(task->mm->pgt, (addr_t)usr_addr+size,
 					0, get_pa_from_page(page),
-					flags, 0, 0, 0, flags);
+					PG_USR, nx, 0, 0, flags);
+			size += __PAGE_SIZE;
 		}
 	}
 

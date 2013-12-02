@@ -1,6 +1,7 @@
 #include <sys/k_stdio.h>
 #include <sys/mm.h>
 
+#include <sys/fs.h>
 
 unsigned char vgatext_x = 0;
 unsigned char vgatext_y = 0;
@@ -643,4 +644,58 @@ void panic(const char *s)
 	while (1)
 		;
 }
+
+size_t console_read(struct file *file, void *buf, size_t nbytes)
+{
+	//TODO
+	return 0;
+}
+
+size_t console_write(struct file *file, void *buf, size_t nbytes)
+{
+	for (size_t i = 0; i < nbytes; i++)
+		k_putchar(0, *(char *)buf++);
+
+	return nbytes;
+}
+
+struct file_operations stdin_ops = {
+	.open = NULL,
+	.close = NULL,
+	.seek = NULL,
+	.read = console_read,
+	.write = NULL,
+};
+
+struct file_operations stdout_ops = {
+	.open = NULL,
+	.close = NULL,
+	.seek = NULL,
+	.read = NULL,
+	.write = console_write,
+};
+
+int console_init(void)
+{
+	/* stdin */
+	files[0].ref = 1;
+	files[0].readable = 1;
+	files[0].writeable = 0;
+	files[0].f_ops = &stdin_ops;
+
+	/* stdout */
+	files[1].ref = 1;
+	files[1].readable = 0;
+	files[1].writeable = 1;
+	files[1].f_ops = &stdout_ops;
+
+	/* stderr */
+	files[2].ref = 1;
+	files[2].readable = 0;
+	files[2].writeable = 1;
+	files[2].f_ops = &stdout_ops;
+
+	return 0;
+}
+
 /* vim: set ts=4 sw=0 tw=0 noet : */

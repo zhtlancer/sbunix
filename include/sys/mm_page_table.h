@@ -40,7 +40,6 @@ get_pgt_entry
     addr_t      va
 );
 
-
 void *
 map_pa_kernel (
     addr_t      paddr   , /* page PA  which will be mapped to VA            */ 
@@ -279,7 +278,6 @@ int
 dup_upgt_self (
 	pgt_t *dst
 );
-
 
 #endif /* __MM_PAGE_TABLE_H__ */
 /* vim: set ts=4 sw=0 tw=0 noet : */

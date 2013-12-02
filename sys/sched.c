@@ -2,9 +2,13 @@
 #include <sys/k_stdio.h>
 #include <sys/string.h>
 #include <sys/mm_vma.h>
+#include <sys/fs.h>
 
 #include <sys/elf.h>
 #include <sys/error.h>
+#include <sys/gdt.h>
+#include <sys/syscall.h>
+#include <sys/x86.h>
 
 #define sched_error(fmt, ...)	\
 	k_printf(1, "<ELF> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
@@ -23,29 +27,9 @@ struct {
 	struct task_struct tasks[NPROC];
 } task_table;
 
-#if TEST_SCHED
-uint8_t stack_a[1024];
-uint8_t stack_b[1024];
+struct task_struct *current;
 
-struct context *pa = (struct context *)(stack_a+1024-sizeof(struct context));
-struct context *pb = (struct context *)(stack_b+1024-sizeof(struct context));
-
-static void a(void)
-{
-	for (;;) {
-		k_printf(0, "Hello\n");
-		swtch(&pa, pb);
-	}
-}
-
-static void b(void)
-{
-	for (;;) {
-		k_printf(0, "World\n");
-		swtch(&pb, pa);
-	}
-}
-#endif
+struct context *scheduler_ctx;
 
 static int alloc_pid(void)
 {
@@ -69,43 +53,26 @@ int sched_init(void)
 	return 0;
 }
 
-#if TEST_SCHED
-void usermode()
-{
-	for ( ; ; )
-		;
-}
-
-static void sched_test()
-{
-	volatile int d=1;
-	while (d);
-	_jump_to_usermode(usermode, (void *)USTACK_TOP);
-}
-#endif
-
 /*
  * The main loop for SBUNIX
  * this function should never return
  */
 void scheduler(void)
 {
-#if TEST_SCHED
-	sched_test();
-	/* FIXME: This is a swtch test, remove this */
-	if (0) {
-		pa->rip = (uint64_t)&a;
-		pb->rip = (uint64_t)&b;
-		pb->rax = 0;
-		pb->rbx = 0;
-		pb->rsi = 0;
-		pb->rdi = 0;
-
-		swtch_to(pa);
-	}
-#endif
+	static int idx = 0;
+	struct task_struct *task;
 
 	for ( ; ; ) {
+		/* lock the table if necessary */
+		if ((task = &task_table.tasks[idx])->state == TASK_RUNNABLE) {
+			current = task;
+			task->state = TASK_RUNNING;
+			tss_set_kernel_stack(task->stack);
+			lcr3(task->cr3);
+			swtch(&scheduler_ctx, task->context);
+		}
+
+		idx = (idx + 1) % NPROC;
 	}
 
 	k_printf(0, "Oops! Why are we here?!\n");
@@ -158,6 +125,8 @@ void free_task(struct task_struct *task)
 {
 }
 
+void fork_ret(void);
+
 /*
  * Create a process from scratch (ELF file)
  */
@@ -165,11 +134,13 @@ struct task_struct *create_task(const char *name)
 {
 	struct elf64_executable exe;
 	struct task_struct *task;
+	struct pt_regs *regs;
 	page_t *page;
-	uint64_t *temp;
 	int rval = 0;
 	volatile int d = 1;
+	void *k_stack;
 
+	while (d);
 	task = alloc_task();
 	if (task == NULL) {
 		sched_error("Failed to alloc task\n");
@@ -200,27 +171,58 @@ struct task_struct *create_task(const char *name)
 	load_elf(task, &exe);
 
 	while (d);
-	/* Allocate and map user stack 
-	 * also initialize the stack content for first run */
-	page = alloc_page(PG_USR | PGT_RW);
+	/* Allocate and map user stack */
+	page = alloc_page(PG_USR);
 	map_page(task->mm->pgt, USTACK_TOP - __PAGE_SIZE, 0,
-			get_pa_from_page(page), PG_USR | PGT_RW, 0, 0, 0, PGT_RW | PGT_USR);
-	temp = (uint64_t *)(page->va + __PAGE_SIZE - 8);
-	*temp-- = (uint64_t)exe.entry;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	*temp-- = 0x0;
-	task->context = (struct context *)(USTACK_TOP - 8 * 7);
-	task->rip = (uint64_t)exe.entry;
+			get_pa_from_page(page), PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
 
-	while (d);
-	/* Allocate kernel stack for it */
-	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE - 8;
+	/* Allocate kernel stack for it
+	 * also initialize the stack content for first run */
+	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE;
+	k_stack = task->stack - sizeof(struct pt_regs);
+	regs = k_stack;
+	regs->ss = 0x23;
+	regs->rsp = USTACK_TOP;
+	regs->rflags = DEFAULT_USER_RFLAGS;
+	regs->cs = 0x2B;
+	regs->rip = (uint64_t)exe.entry;
+	regs->rax = 0x0;
+	regs->rbx = 0x0;
+	regs->rcx = (uint64_t)exe.entry;
+	regs->rdx = 0x0;
+	regs->rdi = 0x0;
+	regs->rsi = 0x0;
+	regs->rbp = 0x0;
+	regs->r8 = 0x0;
+	regs->r9 = 0x0;
+	regs->r10 = 0x0;
+	regs->r11 = DEFAULT_USER_RFLAGS;
+	regs->r12 = 0x0;
+	regs->r13 = 0x0;
+	regs->r14 = 0x0;
+	regs->r15 = 0x0;
+	task->tf = regs;
 
-	_switch_to_usermode(task->cr3, task->context, (void *)task->rip);
+	k_stack -= 8;
+	*(uint64_t *)k_stack = (uint64_t)_syscall_lstar_ret;
+
+	k_stack -= sizeof(struct context);
+	task->context = (struct context *)k_stack;
+	memset(task->context, 0, sizeof(struct context));
+	task->context->rip = (uint64_t)fork_ret;
+
+	task->files[0] = file_dup(&files[0]);
+	task->files[1] = file_dup(&files[1]);
+	task->files[2] = file_dup(&files[2]);
+
+	task->state = TASK_RUNNABLE;
+
+#if TEST_SCHED
+	current = task;
+	task->state = TASK_RUNNING;
+	tss_set_kernel_stack(task->stack);
+	_switch_to_usermode(task->cr3, task->tf);
+#endif
 
 	return task;
 
@@ -230,13 +232,86 @@ fail_task:
 }
 
 /*
- * Duplicate a process into a new process (like fork)
+ * Duplicate current into a new process (for fork)
  */
-struct task_struct *duplicate_task(struct task_struct *parent)
+struct task_struct *duplicate_task(void)
 {
-	/* Allocate mm_struct */
+	struct task_struct *task;
+	void *k_stack;
+	int i;
 
-	return NULL;
+	task = alloc_task();
+
+	/* Duplicate vm and copy page mappings */
+	task->mm = mm_struct_dup();
+	task->cr3 = get_pa_from_va(task->mm->pgt);
+
+	/* Allocate kernel stack, and fill it with sensible data */
+	task->stack = (void *)alloc_page(PG_SUP)->va + __PAGE_SIZE;
+	k_stack = task->stack - sizeof(struct pt_regs);
+	task->tf = (struct pt_regs *)k_stack;
+
+	k_stack -= 8;
+	/* build syscall return point */
+	*(uint64_t *)k_stack = (uint64_t)_syscall_lstar_ret;
+
+	k_stack -= sizeof(struct context);
+	task->context = (struct context *)k_stack;
+	memset(task->context, 0, sizeof(struct context));
+	task->context->rip = (uint64_t)fork_ret;
+
+	/* Dup opened files */
+	for (i = 0; i < NFILE_PER_PROC; i++) {
+		if (current->files[i] != NULL)
+			task->files[i] = file_dup(current->files[i]);
+	}
+
+	return task;
+}
+
+void fork_ret(void)
+{
+	/* Fake return call for forked child and first process
+	 * no function should directly call this
+	 */
+}
+
+pid_t fork(void)
+{
+	struct task_struct *new;
+
+	new = duplicate_task();
+
+	/* copy trapframe from parent */
+	*new->tf = *current->tf;
+
+	/* Set child's return value to 0 */
+	new->tf->rax = 0;
+	current->tf->rax = new->pid;
+
+	new->state = TASK_RUNNABLE;
+	
+	return new->pid;
+}
+
+void sched(void)
+{
+	if (current->state == TASK_RUNNING) {
+		sched_error("Task[%d] running!\n", current->pid);
+		panic("Unexpected scheduler behavior!\n");
+	}
+	swtch(&current->context, scheduler_ctx);
+}
+
+void yield(void)
+{
+	current->state = TASK_RUNNABLE;
+	sched();
+}
+
+int kill(pid_t pid)
+{
+	return -1;
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

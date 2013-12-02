@@ -74,7 +74,45 @@ vma_find
 
 } /* vma_find() */
 
+vma_t *
+vma_duplicate (
+	vma_t *vma_src
+)
+{
+	vma_t *vma_iter = NULL;
+	vma_t *vma_new, *vma_tmp1, *vma_tmp2;
 
+	vma_new = (vma_t *)get_object(objcache_vma_head);
+	vma_new->flag = vma_src->flag;
+	vma_new->vm_start = vma_src->vm_start;
+	vma_new->vm_end = vma_src->vm_end;
+	vma_new->anon_vma = vma_src->anon_vma;
+	vma_new->file = vma_src->anon_vma;
+	vma_new->ofs = vma_src->ofs;
+	vma_new->prev = vma_new;
+	vma_new->next = vma_new;
+
+	vma_tmp1 = vma_new;
+
+	for (vma_iter = vma_src->next; vma_iter != vma_src; vma_iter = vma_iter->next) {
+		vma_tmp2 = (vma_t *)get_object(objcache_vma_head);
+		vma_tmp2->flag = vma_iter->flag;
+		vma_tmp2->vm_start = vma_iter->vm_start;
+		vma_tmp2->vm_end = vma_iter->vm_end;
+		vma_tmp2->anon_vma = vma_iter->anon_vma;
+		vma_tmp2->file = vma_iter->anon_vma;
+		vma_tmp2->ofs = vma_iter->ofs;
+
+		vma_tmp2->prev = vma_tmp1;
+		vma_tmp1->next = vma_tmp2;
+		vma_tmp1 = vma_tmp2;
+	}
+
+	vma_tmp1->next = vma_tmp1;
+	vma_new->prev = vma_tmp1;
+
+	return vma_new;
+}
 
 /* create a new mm_struct for a process */
 /* FIXME: not tested yet */
@@ -154,6 +192,50 @@ mm_struct_new (
     return mm_s;
 } /* mm_struct_new() */
 
+/*
+ * Create a duplicated process address space from current proc's mm_struct.
+ * Also, we copy all needed page mapping into the new process too
+ */
+mm_struct_t *
+mm_struct_dup(void)
+{
+	addr_t pgt_pa = 0;
+	addr_t addr = 0;
+	mm_struct_t *mm_p = current->mm;
+
+	mm_struct_t *mm_new = (mm_struct_t *)(get_object( objcache_mm_struct_head ));
+
+	mm_new->code_start = mm_p->code_start;
+	mm_new->code_end = mm_p->code_end;
+	mm_new->data_start = mm_p->data_start;
+	mm_new->data_end = mm_p->data_end;
+	mm_new->brk_start = mm_p->brk_start;
+	mm_new->brk_end = mm_p->brk_end;
+	mm_new->stack_start = mm_p->stack_start;
+
+	/* Duplicate VMAs */
+	mm_new->mmap = vma_duplicate(mm_p->mmap);
+
+    /* setup page table */
+    mm_new->pgt   = get_zeroed_page( PG_PGT | PG_SUP | PG_OCP );
+    pgt_pa      = get_pa_from_va( mm_new->pgt );
+    init_pgt( (mm_new->pgt) );
+
+	/* set lv1 page table entry: self-reference entry */
+	addr = ((addr_t)(mm_new->pgt)) + (8*PGT_ENTRY_LV1_SELFREF);
+	set_pgt_entry( addr, pgt_pa          , PGT_P, PGT_EXE,
+			0x0, 0x0, PGT_RW | PGT_SUP );
+
+	/* set lv1 page table entry: kernel page */
+	addr = ((addr_t)(mm_new->pgt)) + (8*PGT_ENTRY_LV1_KERNEL );
+	set_pgt_entry( addr, def_pgt_paddr_lv2, PGT_P, PGT_EXE,
+			0x0, 0x0, PGT_RW | PGT_SUP );
+
+	/* Duplicate user address space (including user stack) */
+	dup_upgt_self(mm_new->pgt);
+
+    return mm_new;
+}
 
 /* free a mm_struct */
 /* FIXME: not tested yet */

@@ -2,6 +2,7 @@
 #include <sys/io.h>
 #include <sys/k_stdio.h>
 #include <sys/pic.h>
+#include <sys/sched.h>
 
 #define PIT_CH0     0x40  //PIT Channel 0's Data Register Port
 #define PIT_CH1     0x41  //PIT Channels 1's Data Register Port, we wont be using this here
@@ -11,6 +12,8 @@
 
 uint64_t pit_cnt_m; /* millisecond counter */
 uint64_t pit_cnt_s; /*      second counter */
+
+volatile uint64_t jiffies;
 
 void PIT_init(uint16_t freq)
 {
@@ -30,6 +33,7 @@ void isr_pit()
 	char temp[K_NUM_STR_LEN_MAX+1];
 	uint32_t len;
 	uint32_t i, j;
+
 	pit_cnt_m++;
 	if ( pit_cnt_m == 1000 ) {
 		pit_cnt_s++;
@@ -50,6 +54,10 @@ void isr_pit()
 			*temp2 = *temp1;
 	}
 	PIC_eoi(0);
+
+	jiffies++;
+	if (!(jiffies % 100))
+		yield();
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

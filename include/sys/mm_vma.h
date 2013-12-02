@@ -61,9 +61,13 @@ mm_struct_new (
     uint64_t    bss_size   
 );
 
+mm_struct_t *
+mm_struct_dup(void);
+
 void
 mm_struct_free (
     mm_struct_t *mm_s
 );
 
 #endif /* __MM_VMA_H__ */
+/* vim: set ts=4 sw=0 tw=0 noet : */

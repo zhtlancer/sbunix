@@ -7,6 +7,10 @@
 
 #include <defs.h>
 
+#define memmove	__builtin_memmove
+#define memcpy	__builtin_memcpy
+#define memset	__builtin_memset
+
 #define strcpy	__builtin_strcpy
 #define strncpy	__builtin_strncpy
 

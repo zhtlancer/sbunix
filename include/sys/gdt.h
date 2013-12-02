@@ -28,5 +28,7 @@ extern uint64_t gdt[];
 void reload_gdt();
 void setup_tss();
 
+void tss_set_kernel_stack(void *stack);
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -5,8 +5,8 @@
 //#include "./gccbuiltin.h"
 //#include "../cse506-git_new/include/defs.h"
 
-#include <sys/gccbuiltin.h>
 #include <defs.h>
+#include <gccbuiltin.h>
 
 #define __memput_char(addr, val)  (*(volatile char*)     (addr)) = val
 #define __memput_int(addr, val)   (*(volatile int*)      (addr)) = val

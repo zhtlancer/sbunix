@@ -10,30 +10,44 @@ swtch:
 	// Save old context
 	pushq %rax
 	pushq %rbx
-	pushq %rsi
+	pushq %rcx
+	pushq %rdx
 	pushq %rdi
+	pushq %rsi
+	pushq %rbp
+	pushq %r8
+	pushq %r9
+	pushq %r10
+	pushq %r11
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15
 
 	// Switch stack pointer
 	movq %rsp, (%rdi)
 	movq %rsi, %rsp
 
 	// Restore new context
-	popq %rdi
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12
+	popq %r11
+	popq %r10
+	popq %r9
+	popq %r8
+	popq %rbp
 	popq %rsi
+	popq %rdi
+	popq %rdx
+	popq %rcx
 	popq %rbx
 	popq %rax
 
 	// Return to new context
 	ret
 
-.globl swtch_to
-swtch_to:
-	movq %rdi, %rsp
-	popq %rdi
-	popq %rsi
-	popq %rbx
-	popq %rax
-	ret
 /* 1: CR3, 2: target RSP, 3: target RIP */
 .globl _switch_to_usermode
 _switch_to_usermode:
@@ -47,23 +61,29 @@ _switch_to_usermode:
 
 	/* Switch CR3 */
 	mov	%rdi, %cr3
-
 	mov %rsi, %rsp
-	mov %rdx, %rcx	/* store rip in rcx */
-	pushfq
-	popq %r11	/* store rflags in R11 */
 
 	/* restore other registers */
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12
+	popq %r11
+	popq %r10
+	popq %r9
+	popq %r8
 	popq %rbp
 	popq %rsi
 	popq %rdi
 	popq %rdx
+	popq %rcx
 	popq %rbx
 	popq %rax
-	popq %rcx	/*FIXME: This is for the unused rip */
+	popq %rcx		/* RIP */
+	addq $8, %rsp	/* skip CS */
+	popq %r11		/* RFLAGS */
+	popq %rsp		/* user stack */
 	
-	push $0x23	/* %ss */
-	push $0x1B	/* %cs */
 	sysretq
 
 .globl _jump_to_usermode

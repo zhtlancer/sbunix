@@ -14,7 +14,6 @@
 #define mm_error(fmt, ...)	\
 	k_printf(1, "<MM> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
 
-
 /* initialize a page table */
 int
 init_pgt
@@ -464,7 +463,6 @@ set_pgt_entry_lv1_self
     return set_pgt_entry( addr_tmp, paddr, present, nx, avl_1, avl_2, flag );
 }/* set_pgt_entry_lv1() */
 
-
 /* get a lv1 page table entry */
 pgt_t *
 get_pgt_entry_lv1_self
@@ -690,4 +688,5 @@ dup_upgt_self (
 	flush_tlb();
 	return 0;
 }
+
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -43,6 +43,8 @@ struct fs_operations {
 	struct inode *(*path_lookup)(struct inode *parent, const char *path);
 	size_t (*read)(struct inode *inode, void *dst, off_t offset, size_t nbytes);
 	size_t (*write)(struct inode *inode, void *src, off_t offset, size_t nbytes);
+	/* offset is based on dirent, not bytes */
+	int (*getdirents)(struct inode *inode, void *buf, int offset, int count);
 	void (*close)(struct inode *inode);
 };
 

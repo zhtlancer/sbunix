@@ -75,7 +75,7 @@ int is_kbd_buf_empty(void)
 
 int is_kbd_buf_full(void)
 {
-	return kbd_buf_pos >= KBD_BUF_SZ;
+	return kbd_buf_pos >= KBD_BUF_SZ - 1;
 }
 
 void kbd_buf_backspace(void)
@@ -83,13 +83,23 @@ void kbd_buf_backspace(void)
 	kbd_buf_pos -= 1;
 }
 
+void kbd_commit_buf(void)
+{
+	/* TODO: commit buffer content to reading proc */
+	kbd_buf_pos = 0;
+}
+
 void kbd_fill_echo(uint8_t ch)
 {
-	if (is_kbd_buf_full() && ch != '\b')
+	if (is_kbd_buf_full() && ch != '\b' && ch != '\n')
 		return;
 	if (ch != '\b')
 		kbd_buf[kbd_buf_pos++] = ch;
 	k_putchar(0, ch);
+	if (!is_kbd_buf_empty() && ch == '\n') {
+		kbd_buf[kbd_buf_pos-1] = '\0';
+		kbd_commit_buf();
+	}
 }
 
 /* FIXME: this extern reference should be removed in the future */

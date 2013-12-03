@@ -25,6 +25,9 @@
 /* The very first userspace executable */
 #define USER_INIT	"/bin/test"
 
+/* The idle proc, which spin forever and never sleep */
+#define USER_IDLE	"/bin/idle"
+
 struct {
 	/* FIXME: maybe we need a lock to protect this */
 	struct task_struct tasks[NPROC];
@@ -52,6 +55,9 @@ int sched_init(void)
 
 	/* Create the very first user space process */
 	create_task(USER_INIT);
+
+	/* Create the idle proc */
+	create_task(USER_IDLE);
 
 	return 0;
 }

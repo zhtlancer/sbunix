@@ -70,6 +70,10 @@ int k_putchar( unsigned char lvl, const char c)
     return vgatext_putchar(c);
 }
 
+extern int is_kbd_buf_empty(void);
+extern int is_kbd_buf_full(void);
+extern void kbd_buf_backspace(void);
+
 int vgatext_putchar(const char c)
 {
     addr_t vgatext_pos = 0; 
@@ -96,8 +100,18 @@ int vgatext_putchar(const char c)
         break;
     
     case '\b' :
-        if ( vgatext_x > 0 )
-            vgatext_x -= 1;
+		if (!is_kbd_buf_empty()) {
+			kbd_buf_backspace();
+			if ( vgatext_x > 0 )
+				vgatext_x -= 1;
+			else if (vgatext_y > 0) {
+				vgatext_x = __VGATEXT_MAX_X - 1;
+				vgatext_y -= 1;
+			}
+			vgatext_pos = ((vgatext_y*__VGATEXT_MAX_X)+vgatext_x)<<1;
+			__memput_char(vgatext_vbase+vgatext_pos  , ' ');
+			__memput_char(vgatext_vbase+vgatext_pos+1, (char)7);
+		}
         break;
 
     case '\r' :

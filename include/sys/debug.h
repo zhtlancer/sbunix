@@ -42,5 +42,10 @@
  */
 #define DEBUG_FS 1
 
+/*
+ * DEBUG switch for SBFS
+ */
+#define DEBUG_SBFS 1
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

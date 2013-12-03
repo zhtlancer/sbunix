@@ -5,12 +5,14 @@
 
 #include <defs.h>
 #include <sys/pci.h>
+#include <sys/dev.h>
 
 
 /*-------------------------------------------------------------------------
  * Definition
  *-------------------------------------------------------------------------
  */
+
 
 #define SATA_SIG_ATA            0x00000101      // SATA drive
 #define SATA_SIG_ATAPI          0xEB140101      // SATAPI drive
@@ -40,8 +42,16 @@
 #define ATA_CMD_READ_DMA_EX     0x25
 #define ATA_CMD_WRITE_DMA_EX    0x35
 
+/*-----------------------------------------------------
+ * For this project only
+ *-----------------------------------------------------
+ */
+
 #define AHCI_DEFAULT_PORT       0
 #define AHCI_DEV0_PA            0xFEBF0000
+#define AHCI_DISK_SIZE          16*1024*1024
+#define AHCI_SECT_SIZE          512
+#define AHCI_DISK_SECT_NUM      (AHCI_DISK_SIZE/AHCI_SECT_SIZE)
 
 /*-------------------------------------------------------------------------
  * Structure
@@ -462,16 +472,18 @@ ahci_write(
 
 
 int
-readsect
+ahci_readsect
 (
+    struct dev  *dev,
     void        *dst,
     uint64_t    lba
 );
 
 
 int
-writesect
+ahci_writesect
 (
+    struct dev  *dev,
     void        *src,
     uint64_t    lba
 );

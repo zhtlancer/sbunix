@@ -1,4 +1,5 @@
 #include <sys/dev.h>
+#include <sys/ahci.h>
 #include <sys/string.h>
 
 struct dev devs[NDEV];
@@ -18,6 +19,17 @@ int dev_init(void)
 	dev = &devs[DEV_TARFS];
 	dev->type = DEV_TYPE_BLOCK | DEV_TYPE_PSEUDO;
 	/* TODO */
+
+	/* Initialize AHCI device */
+	dev = &devs[DEV_DISK];
+	dev->type 			= DEV_TYPE_BLOCK;
+	dev->super_block 	= NULL; //FIXME
+	dev->seek			= NULL;
+	dev->read			= NULL;
+	dev->write			= NULL;
+	dev->readsect		= ahci_readsect;
+	dev->writesect		= ahci_writesect;
+	ahci_init();
 
 	return 0;
 }

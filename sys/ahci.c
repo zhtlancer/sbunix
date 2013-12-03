@@ -2,6 +2,7 @@
 #include <defs.h>
 #include <sys/string.h>
 #include <sys/mm.h>
+#include <sys/dev.h>
 #include <sys/pci.h>
 #include <sys/ahci.h>
 #include <sys/k_stdio.h>
@@ -414,8 +415,9 @@ ahci_find_cmdslot
 
 
 int
-readsect
+ahci_readsect
 (
+    struct dev  *dev,
     void        *dst,
     uint64_t    lba
 )
@@ -431,8 +433,9 @@ readsect
 
 
 int
-writesect
+ahci_writesect
 (
+    struct dev  *dev,
     void        *src,
     uint64_t    lba
 )
@@ -527,7 +530,8 @@ ahci_init ()
     //k_printf( 0, "\n" );
 
     //if ( ahci_read( &(hba_mem_0->ports[0]), 0, 0, 128, ahci_buf ) )
-    if ( readsect( ahci_buf, 0 ) )
+    //if ( ahci_readsect( &devs[DEV_DISK], ahci_buf, 0 ) )
+    if ( devs[DEV_DISK].readsect( &devs[DEV_DISK], ahci_buf, 0 ) )
         k_printf( 0, "AHCI read OK!\n" );
     else
         k_printf( 0, "AHCI read Error!\n" );

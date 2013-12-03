@@ -27,7 +27,6 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 
     /* PCI initialization */
 	pci_init();
-	ahci_init();
 
 	dev_init();
 

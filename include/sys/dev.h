@@ -7,6 +7,7 @@
 #define DEV_TARFS	2
 #define DEV_DISK	3
 
+
 enum {
 	DEV_SEEK_SET = 1,
 	DEV_SEEK_CUR = 2,
@@ -35,6 +36,8 @@ struct dev {
 };
 
 int dev_init(void);
+
+extern struct dev devs[NDEV];
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

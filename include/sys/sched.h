@@ -113,8 +113,6 @@ struct task_struct {
 
 extern struct task_struct *current;
 
-struct task_struct *create_task(const char *name);
-
 struct task_struct *duplicate_task(void);
 
 int sched_init(void);
@@ -126,6 +124,8 @@ void swtch(struct context **old, struct context *new);
 void _switch_to_usermode(uint64_t cr3, void *stack);
 
 pid_t fork(void);
+
+int execve(const char *pathname, char *const argv[], char *const envp[]);
 
 void yield(void);
 

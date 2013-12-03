@@ -48,7 +48,14 @@ int syscall_init(void)
 
 uint64_t sys_fork(struct pt_regs *regs)
 {
-	return fork();
+	regs->rax = fork();
+	return regs->rax;
+}
+
+uint64_t sys_execve(struct pt_regs *regs)
+{
+	regs->rax = execve((const char *)regs->rdi, (char *const *)regs->rsi, (char *const *)regs->rdx);
+	return regs->rax;
 }
 
 uint64_t sys_sleep(struct pt_regs *regs)
@@ -142,6 +149,8 @@ uint64_t syscall_common(struct pt_regs *regs)
 	switch (syscall_no) {
 	case SYS_fork:
 		return sys_fork(regs);
+	case SYS_execve:
+		return sys_execve(regs);
 	case SYS_sleep:
 		return sys_sleep(regs);
 	case SYS_wait:

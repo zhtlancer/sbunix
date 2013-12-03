@@ -45,23 +45,6 @@ static int alloc_pid(void)
 	return ++pid;
 }
 
-int sched_init(void)
-{
-	int i;
-
-	for (i = 0; i < NPROC; i++) {
-		task_table.tasks[i].state = TASK_UNUSED;
-	}
-
-	/* Create the very first user space process */
-	create_task(USER_INIT);
-
-	/* Create the idle proc */
-	create_task(USER_IDLE);
-
-	return 0;
-}
-
 /*
  * The main loop for SBUNIX
  * this function should never return
@@ -136,10 +119,49 @@ void free_task(struct task_struct *task)
 
 void fork_ret(void);
 
+static mm_struct_t *create_uvm(const char *name, uint64_t *entry)
+{
+	mm_struct_t *mm = NULL;
+	struct elf64_executable exe;
+	int rval;
+	page_t *page;
+
+	memset(&exe, 0, sizeof(exe));
+	strlcpy(exe.name, name, ELF_NAME_MAX);
+
+	rval = parse_elf_executable(&exe);
+	if (rval != 0) {
+		sched_error("Failed to load elf file \"%s\" (%d)\n",
+				exe.name, rval);
+		return NULL;
+	}
+
+	/* Allocate mm_struct */
+	mm = mm_struct_new((addr_t)exe.code_start,
+			(addr_t)exe.code_start + exe.code_size,
+			(addr_t)exe.data_start,
+			(addr_t)exe.data_start + exe.data_size,
+			0, 0, 0,
+			exe.bss_size);
+
+	/* Allocate physical memory and load elf file into it */
+	load_elf(mm, &exe);
+
+	*entry = (uint64_t)exe.entry;
+
+	/* Allocate and map user stack */
+	page = alloc_page(PG_USR);
+	map_page(mm->pgt, USTACK_TOP - __PAGE_SIZE, 0,
+			get_pa_from_page(page), PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
+
+	return mm;
+}
+
+
 /*
  * Create a process from scratch (ELF file)
  */
-struct task_struct *create_task(const char *name)
+static struct task_struct *create_task(const char *name)
 {
 	struct elf64_executable exe;
 	struct task_struct *task;
@@ -177,7 +199,7 @@ struct task_struct *create_task(const char *name)
 	task->cr3 = get_pa_from_va(task->mm->pgt);
 
 	/* Allocate physical memory and load elf file into it */
-	load_elf(task, &exe);
+	load_elf(task->mm, &exe);
 
 	while (d);
 	/* Allocate and map user stack */
@@ -220,6 +242,7 @@ struct task_struct *create_task(const char *name)
 	memset(task->context, 0, sizeof(struct context));
 	task->context->rip = (uint64_t)fork_ret;
 
+	/* duplicate stdin/stdout/stderr */
 	task->files[0] = file_dup(&files[0]);
 	task->files[1] = file_dup(&files[1]);
 	task->files[2] = file_dup(&files[2]);
@@ -303,6 +326,48 @@ pid_t fork(void)
 	return new->pid;
 }
 
+int execve(const char *pathname, char *const argv[], char *const envp[])
+{
+	mm_struct_t *new_mm;
+	uint64_t entry;
+
+	/* create new mm_struct */
+	new_mm = create_uvm(pathname, &entry);
+	if (new_mm == NULL) {
+		sched_error("execve failed\n");
+		return -1;
+	}
+
+	/* free previous mm_struct and resource */
+	mm_struct_free(current->mm);
+
+	/* switch to new mm_struct */
+	current->mm = new_mm;
+	current->cr3 = get_pa_from_va(new_mm->pgt);
+	lcr3(current->cr3);
+
+	/* free all opened files, and reopen stdin/stdout/stderr */
+	for (int i = 0; i < NFILE_PER_PROC; i++) {
+		if (current->files[i] != NULL) {
+			file_put(current->files[i]);
+			current->files[i] = NULL;
+		}
+	}
+
+	current->files[0] = file_dup(&files[0]);
+	current->files[1] = file_dup(&files[1]);
+	current->files[2] = file_dup(&files[2]);
+
+	/* TODO: setup up user stack based on argv and envp */
+
+	/* rebuild trapframe */
+	current->tf->rip = entry;
+	current->tf->rcx = entry;
+	current->tf->rsp = USTACK_TOP;
+
+	return 0;
+}
+
 void sched(void)
 {
 	if (current->state == TASK_RUNNING) {
@@ -321,6 +386,23 @@ void yield(void)
 int kill(pid_t pid)
 {
 	return -1;
+}
+
+int sched_init(void)
+{
+	int i;
+
+	for (i = 0; i < NPROC; i++) {
+		task_table.tasks[i].state = TASK_UNUSED;
+	}
+
+	/* Create the very first user space process */
+	create_task(USER_INIT);
+
+	/* Create the idle proc */
+	create_task(USER_IDLE);
+
+	return 0;
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

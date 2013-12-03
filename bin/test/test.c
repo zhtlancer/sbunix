@@ -18,6 +18,8 @@ int main()
 		*(uint64_t *)0x7fffffffeff0 = 0xdeadbeef;
 		d = 1;
 		printf("I'm child, pid=%d\n", getpid());
+		test = execve("/bin/sh", NULL, NULL);
+		printf("execve %d\n", test);
 	} else {
 		*(uint64_t *)0x7fffffffeff0 = 0xdeadbeef;
 		d = 2;
@@ -27,7 +29,7 @@ int main()
 	printf("%d\n", test);
 
 	while (d)
-		;
+		printf("TTTTTEEEESSSSTTTT\n");
 
 	printf("%s", TEST);
 	return 0;

@@ -171,7 +171,7 @@ fail:
 	return rval;
 }
 
-int load_elf(struct task_struct *task, struct elf64_executable *exe)
+int load_elf(mm_struct_t *mm, struct elf64_executable *exe)
 {
 	int i, rval = 0;
 	struct elf64_header hdr;
@@ -221,7 +221,7 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 			}
 			/* FIXME: Is it OK to use the same flags for page and page-table? */
 			elf_db("mapping %p, flags = %x\n", usr_addr + size, flags);
-			map_page(task->mm->pgt, (addr_t)usr_addr+size,
+			map_page(mm->pgt, (addr_t)usr_addr+size,
 					0, get_pa_from_page(page),
 					PG_USR, nx, 0, 0, flags);
 			size += avail_size;
@@ -239,7 +239,7 @@ int load_elf(struct task_struct *task, struct elf64_executable *exe)
 			}
 
 			/* FIXME: Is it OK to use the same flags for page and page-table? */
-			map_page(task->mm->pgt, (addr_t)usr_addr+size,
+			map_page(mm->pgt, (addr_t)usr_addr+size,
 					0, get_pa_from_page(page),
 					PG_USR, nx, 0, 0, flags);
 			size += __PAGE_SIZE;

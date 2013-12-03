@@ -7,6 +7,11 @@
 #define DEBUG_MM	0
 
 /*
+ * DEBUG switch for MM VMA
+ */
+#define DEBUG_MM_VMA	0
+
+/*
  * DEBUG switch for tarfs
  */
 #define DEBUG_TARFS 0

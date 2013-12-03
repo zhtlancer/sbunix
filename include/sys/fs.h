@@ -91,6 +91,9 @@ static inline struct file *file_dup(struct file *file)
 	return file;
 }
 
+void file_close(struct file *file);
+
+#if 0
 static inline void file_put(struct file *file)
 {
 	if (file->ref <= 0) {
@@ -99,6 +102,7 @@ static inline void file_put(struct file *file)
 	}
 	file->ref -= 1;
 }
+#endif
 
 int vfs_init(void);
 

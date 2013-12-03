@@ -22,10 +22,7 @@
 
 #define TEST_SCHED 0
 
-/* The very first userspace executable */
-#define USER_INIT	"/bin/test"
-
-/* The idle proc, which spin forever and never sleep */
+/* The idle proc, which spin forever and run very first */
 #define USER_IDLE	"/bin/idle"
 
 struct {
@@ -34,6 +31,7 @@ struct {
 } task_table;
 
 struct task_struct *current;
+struct task_struct *idle_task;
 
 struct context *scheduler_ctx;
 
@@ -339,7 +337,7 @@ int execve(const char *pathname, char *const argv[], char *const envp[])
 	}
 
 	/* free previous mm_struct and resource */
-	mm_struct_free(current->mm);
+	mm_struct_free_self(current->mm);
 
 	/* switch to new mm_struct */
 	current->mm = new_mm;
@@ -349,7 +347,7 @@ int execve(const char *pathname, char *const argv[], char *const envp[])
 	/* free all opened files, and reopen stdin/stdout/stderr */
 	for (int i = 0; i < NFILE_PER_PROC; i++) {
 		if (current->files[i] != NULL) {
-			file_put(current->files[i]);
+			file_close(current->files[i]);
 			current->files[i] = NULL;
 		}
 	}
@@ -366,6 +364,32 @@ int execve(const char *pathname, char *const argv[], char *const envp[])
 	current->tf->rsp = USTACK_TOP;
 
 	return 0;
+}
+
+void exit(int status)
+{
+	int i;
+
+	/* Close all opened files */
+	for (i = 0; i < NFILE_PER_PROC; i++) {
+		if (current->files[i] != NULL) {
+			file_close(current->files[i]);
+			current->files[i] = NULL;
+		}
+	}
+
+	/* free process' cwd */
+
+	/* wakeup parent if they are wating */
+
+	/* Pass child to idle process */
+
+	/* store process' exit status */
+	current->tf->rax = status;
+
+	current->state = TASK_ZOMBIE;
+	sched();
+	panic("Returning to a ZOMBIE!!!\n");
 }
 
 void sched(void)
@@ -396,11 +420,11 @@ int sched_init(void)
 		task_table.tasks[i].state = TASK_UNUSED;
 	}
 
-	/* Create the very first user space process */
-	create_task(USER_INIT);
-
 	/* Create the idle proc */
-	create_task(USER_IDLE);
+	idle_task = create_task(USER_IDLE);
+	if (idle_task == NULL) {
+		panic("Failed to create idle process\n");
+	}
 
 	return 0;
 }

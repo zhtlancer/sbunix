@@ -75,7 +75,8 @@ uint64_t sys_waitpid(struct pt_regs *regs)
 
 uint64_t sys_exit(struct pt_regs *regs)
 {
-	return 0;
+	exit(regs->rdi);
+	return -1; /* actually we shouldn't return */
 }
 
 uint64_t sys_kill(struct pt_regs *regs)

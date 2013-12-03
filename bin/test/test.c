@@ -18,7 +18,7 @@ int main()
 		*(uint64_t *)0x7fffffffeff0 = 0xdeadbeef;
 		d = 1;
 		printf("I'm child, pid=%d\n", getpid());
-		test = execve("/bin/sh", NULL, NULL);
+		test = execve("/bin/hello", NULL, NULL);
 		printf("execve %d\n", test);
 	} else {
 		*(uint64_t *)0x7fffffffeff0 = 0xdeadbeef;

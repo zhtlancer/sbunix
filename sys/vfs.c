@@ -161,4 +161,21 @@ struct inode *path_lookup(struct inode *parent, const char *path)
 	return inode;
 }
 
+void file_close(struct file *file)
+{
+	if (file->ref <= 0) {
+		k_printf(0, "Putting an unreferenced file %p\n", file);
+		panic("file_put error\n");
+	}
+	file->ref -= 1;
+	if (file->ref == 0 && file->f_ops->close != NULL)
+		file->f_ops->close(file); /* don't operate on inode here */
+
+	file->readable = 0;
+	file->writeable = 0;
+	file->offset = 0;
+	file->inode = NULL;
+	file->f_ops = NULL;
+}
+
 /* vim: set ts=4 sw=0 tw=0 noet : */

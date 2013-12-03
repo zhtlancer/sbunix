@@ -127,6 +127,10 @@ pid_t fork(void);
 
 int execve(const char *pathname, char *const argv[], char *const envp[]);
 
+void exit(int status);
+
+void sched(void);
+
 void yield(void);
 
 int kill(pid_t pid);

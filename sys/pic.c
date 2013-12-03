@@ -79,6 +79,10 @@ uint64_t current_irq;
 
 void isr_common(uint64_t irq, uint64_t error_code, struct pt_regs *regs)
 {
+	if (current == NULL) {
+		k_printf(0, "Interrupt %d occurs at boot time\n", irq);
+		panic("Interrupt too early!\n");
+	}
 	current->tf = regs;
 	current_irq = irq;
 

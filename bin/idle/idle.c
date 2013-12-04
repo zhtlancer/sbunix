@@ -5,6 +5,12 @@
 
 #define SHELL_BIN "/bin/sh"
 
+/* argv for shell, no extra arguments */
+char *const argv[] = {
+	"/bin/sh",
+	NULL,
+};
+
 int main()
 {
 	pid_t sh_pid = 0;
@@ -26,8 +32,8 @@ int main()
 
 		sh_pid = fork();
 		if (sh_pid == 0) {
-			printf("[IDLE] child spawning new sh(%d)\n", sh_pid);
-			execve(SHELL_BIN, NULL, NULL);
+			/*printf("[IDLE] child spawning new sh(%d)\n", sh_pid);*/
+			execve(SHELL_BIN, argv, NULL);
 		} else {
 			printf("[IDLE] spawn new sh(%d)\n", sh_pid);
 		}

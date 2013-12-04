@@ -19,7 +19,15 @@
 #define SBFS_INODE_NUM          2048*(AHCI_SECT_SIZE/SBFS_INODE_SIZE)
 #define SBFS_INODE_START        (SBFS_SECT_BM*(AHCI_SECT_SIZE/SBFS_INODE_SIZE))
 #define SBFS_SECT_DATA          2048
+#define SBFS_DENTRY_SIZE		16
 
+
+#define SBFS_IT_FREE			0
+#define SBFS_IT_FILE			1
+#define SBFS_IT_DIR				2
+#define SBFS_IT_DEV  			4
+
+#define SBFS_NAME_MAX			13
 
 /*-------------------------------------------------------------------------
  * Structure
@@ -32,6 +40,17 @@ struct sbfs_super_block {
 	uint32_t	sect_nr_data	;
 }__attribute__((packed));
 typedef volatile struct sbfs_super_block sbfs_super_block_t;
+
+struct sbfs_dentry { /* 16 bytes */
+	uint32_t	pinode_nr				;
+	char		name[SBFS_NAME_MAX+1]	;
+}__attribute__((packed));
+typedef struct sbfs_dentry sbfs_dentry_t;
+
+/*-------------------------------------------------------------------------
+ * Global Variable
+ *-------------------------------------------------------------------------
+ */
 
 
 /*-------------------------------------------------------------------------

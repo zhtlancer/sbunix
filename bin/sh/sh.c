@@ -1,3 +1,4 @@
+#include <syscall.h>
 #include <stdio.h>
 
 #define BUF_SIZE 512
@@ -14,6 +15,9 @@ int main()
 		printf("# ");
 		len = gets_l(buf, BUF_SIZE);
 		printf("Got(%d): %s\n", len, buf);
+		printf("sleep...\n", len, buf);
+		len = sleep(1000);
+		printf("sleeped for %d ms...\n", len);
 	}
 
 	return 0;

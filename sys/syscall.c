@@ -3,6 +3,7 @@
 #include <sys/sched.h>
 #include <sys/k_stdio.h>
 #include <sys/fs.h>
+#include <sys/pit.h>
 
 #define SYSCALL_CS	0x08
 #define SYSRET_CS	0x1B
@@ -60,7 +61,13 @@ uint64_t sys_execve(struct pt_regs *regs)
 
 uint64_t sys_sleep(struct pt_regs *regs)
 {
-	return 0;
+	uint64_t tick0 = jiffies;
+	uint64_t tick = jiffies + regs->rdi;
+	while (jiffies < tick) {
+		sleep(&jiffies);
+	}
+	regs->rax = jiffies - tick0;
+	return regs->rax;
 }
 
 uint64_t sys_wait(struct pt_regs *regs)

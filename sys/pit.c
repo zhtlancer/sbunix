@@ -13,7 +13,7 @@
 uint64_t pit_cnt_m; /* millisecond counter */
 uint64_t pit_cnt_s; /*      second counter */
 
-volatile uint64_t jiffies;
+uint64_t jiffies;
 
 void PIT_init(uint16_t freq)
 {
@@ -56,8 +56,10 @@ void isr_pit()
 	PIC_eoi(0);
 
 	jiffies++;
-	if (!(jiffies % 100))
+	if (!(jiffies % 100)) {
+		wakeup_obj(&jiffies);
 		yield();
+	}
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -10,9 +10,9 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 	return __syscall3(SYS_execve, (uint64_t)filename, (uint64_t)argv, (uint64_t)envp);
 }
 
-unsigned int sleep(unsigned int seconds)
+unsigned int sleep(unsigned int mseconds)
 {
-	return __syscall1(SYS_sleep, seconds);
+	return __syscall1(SYS_sleep, mseconds);
 }
 
 pid_t wait(int *status)

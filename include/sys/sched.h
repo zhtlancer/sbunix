@@ -137,5 +137,11 @@ void yield(void);
 
 int kill(pid_t pid);
 
+void sleep(void *wait_obj);
+
+void wakeup_obj(void *wait_obj);
+
+void wakeup_task_obj(struct task_struct *task, void *wait_obj);
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -408,6 +408,60 @@ int kill(pid_t pid)
 	return -1;
 }
 
+/* Put current proc into sleep */
+void sleep(void *wait_obj)
+{
+	if (wait_obj == NULL) {
+		sched_error("Why we want proc(%d) sleep on NULL?\n", current->pid);
+		panic("Unexpected sleep behavior!\n");
+	}
+
+	if (current->state != TASK_RUNNING) {
+		sched_error("Why a non-running proc(%d) wants to sleep?\n", current->pid);
+		panic("Unexpected sleep behavior!\n");
+	}
+
+	if (current->wait != NULL) {
+		sched_error("Why this proc(%d) have non-null wait(%p)?\n", current->pid, current->wait);
+		panic("Unexpected sleep behavior!\n");
+	}
+
+	current->wait = wait_obj;
+	current->state = TASK_SLEEPING;
+	sched();
+}
+
+/* Find an wakeup any tasks sleep on wait_obj */
+void wakeup_obj(void *wait_obj)
+{
+	int i;
+	struct task_struct *tasks = task_table.tasks;
+
+	for (i = 0; i < NPROC; i++) {
+		if (tasks[i].state == TASK_SLEEPING && tasks[i].wait == wait_obj) {
+			tasks[i].wait = NULL;
+			tasks[i].state = TASK_RUNNABLE;
+		}
+	}
+}
+
+/* wakeup task, who is waiting on wait_obj */
+void wakeup_task_obj(struct task_struct *task, void *wait_obj)
+{
+	if (task->state != TASK_SLEEPING) {
+		sched_error("Why we need to wakeup a non-sleeping proc(%d)?\n", task->pid);
+		panic("Unexpected wakeup behavior!\n");
+	}
+
+	if (task->wait != wait_obj) {
+		sched_error("Proc(%d) is waiting on %p instead of %p?\n", task->pid, task->wait, wait_obj);
+		panic("Unexpected wakeup behavior!\n");
+	}
+
+	task->wait = NULL;
+	task->state = TASK_RUNNABLE;
+}
+
 int sched_init(void)
 {
 	int i;

@@ -698,8 +698,7 @@ size_t console_read(struct file *file, void *buf, size_t nbytes)
 	/* Put proc into sleep if we have nothing to provide */
 	if (is_kbd_buf_empty()) {
 		reader = current;
-		reader->state = TASK_SLEEPING;
-		sched();
+		sleep(&reader);
 	}
 
 	/* Now read */
@@ -713,8 +712,7 @@ void console_read_commit(void)
 		return;
 	}
 
-	reader->wait = NULL;
-	reader->state = TASK_RUNNABLE;
+	wakeup_task_obj(reader, &reader);
 	reader = NULL;
 }
 

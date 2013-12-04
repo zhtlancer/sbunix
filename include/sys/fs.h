@@ -2,6 +2,7 @@
 #define _SYS_FILE_H
 
 #include <defs.h>
+#include <sys/k_stdio.h>
 
 /* MAX length of a name in dirent including '\0'
  * (which make sure the dirent is 16 bytes */
@@ -90,6 +91,19 @@ static inline struct file *file_dup(struct file *file)
 	file->ref += 1;
 	return file;
 }
+
+void file_close(struct file *file);
+
+#if 0
+static inline void file_put(struct file *file)
+{
+	if (file->ref <= 0) {
+		k_printf(0, "Putting an unreferenced file %p\n", file);
+		panic("file_put error\n");
+	}
+	file->ref -= 1;
+}
+#endif
 
 int vfs_init(void);
 

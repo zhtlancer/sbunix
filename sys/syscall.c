@@ -3,6 +3,7 @@
 #include <sys/sched.h>
 #include <sys/k_stdio.h>
 #include <sys/fs.h>
+#include <sys/pit.h>
 
 #define SYSCALL_CS	0x08
 #define SYSRET_CS	0x1B
@@ -48,27 +49,43 @@ int syscall_init(void)
 
 uint64_t sys_fork(struct pt_regs *regs)
 {
-	return fork();
+	regs->rax = fork();
+	return regs->rax;
+}
+
+uint64_t sys_execve(struct pt_regs *regs)
+{
+	regs->rax = execve((const char *)regs->rdi, (char *const *)regs->rsi, (char *const *)regs->rdx);
+	return regs->rax;
 }
 
 uint64_t sys_sleep(struct pt_regs *regs)
 {
-	return 0;
+	uint64_t tick0 = jiffies;
+	uint64_t tick = jiffies + regs->rdi;
+	while (jiffies < tick) {
+		sleep(&jiffies);
+	}
+	regs->rax = jiffies - tick0;
+	return regs->rax;
 }
 
 uint64_t sys_wait(struct pt_regs *regs)
 {
-	return 0;
+	regs->rax = wait((int *)regs->rdi);
+	return regs->rax;
 }
 
 uint64_t sys_waitpid(struct pt_regs *regs)
 {
-	return 0;
+	regs->rax = waitpid(regs->rdi, (int *)regs->rsi, regs->rdx);
+	return regs->rax;
 }
 
 uint64_t sys_exit(struct pt_regs *regs)
 {
-	return 0;
+	exit(regs->rdi);
+	return -1; /* actually we shouldn't return */
 }
 
 uint64_t sys_kill(struct pt_regs *regs)
@@ -142,6 +159,8 @@ uint64_t syscall_common(struct pt_regs *regs)
 	switch (syscall_no) {
 	case SYS_fork:
 		return sys_fork(regs);
+	case SYS_execve:
+		return sys_execve(regs);
 	case SYS_sleep:
 		return sys_sleep(regs);
 	case SYS_wait:

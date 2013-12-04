@@ -108,12 +108,14 @@ struct task_struct {
 
 	struct inode *cwd;
 
+	void *wait;		/* if non-null, sleeping on chan */
+
+	int waitpid;	/* special wait object for waitpid call, 0: none, 1: waited */
+
 	char name[16];
 };
 
 extern struct task_struct *current;
-
-struct task_struct *create_task(const char *name);
 
 struct task_struct *duplicate_task(void);
 
@@ -127,9 +129,25 @@ void _switch_to_usermode(uint64_t cr3, void *stack);
 
 pid_t fork(void);
 
+int execve(const char *pathname, char *const argv[], char *const envp[]);
+
+pid_t wait(int *status);
+
+pid_t waitpid(pid_t pid, int *status, int options);
+
+void exit(int status);
+
+void sched(void);
+
 void yield(void);
 
 int kill(pid_t pid);
+
+void sleep(void *wait_obj);
+
+void wakeup_obj(void *wait_obj);
+
+void wakeup_task_obj(struct task_struct *task, void *wait_obj);
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

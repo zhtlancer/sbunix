@@ -3,6 +3,7 @@
 
 #include <defs.h>
 #include <sys/sched.h>
+#include <sys/mm.h>
 
 #define EI_NIDENT	16
 
@@ -98,7 +99,7 @@ struct elf64_executable {
 
 int parse_elf_executable(struct elf64_executable *exe);
 
-int load_elf(struct task_struct *task, struct elf64_executable *exe);
+int load_elf(mm_struct_t *task, struct elf64_executable *exe);
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

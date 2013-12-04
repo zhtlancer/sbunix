@@ -7,6 +7,11 @@
 #define DEBUG_MM	0
 
 /*
+ * DEBUG switch for MM VMA
+ */
+#define DEBUG_MM_VMA	0
+
+/*
  * DEBUG switch for tarfs
  */
 #define DEBUG_TARFS 0
@@ -46,6 +51,11 @@
  * DEBUG switch for SBFS
  */
 #define DEBUG_SBFS 1
+
+/*
+ * DEBUG switch for console (k_printf & keyboard)
+ */
+#define DEBUG_CONSOLE 1
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

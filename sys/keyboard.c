@@ -1,6 +1,19 @@
 #include <defs.h>
 #include <sys/io.h>
 #include <sys/pic.h>
+#include <sys/string.h>
+#include <sys/k_stdio.h>
+#include <sys/con.h>
+
+#define con_error(fmt, ...)	\
+	k_printf(1, "<CON> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+
+#if DEBUG_CONSOLE
+#define con_db(fmt, ...)	\
+	k_printf(1, "<CON DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+#else
+#define con_db(fmt, ...)
+#endif
 
 uint64_t kbd_counter;
 
@@ -75,7 +88,7 @@ int is_kbd_buf_empty(void)
 
 int is_kbd_buf_full(void)
 {
-	return kbd_buf_pos >= KBD_BUF_SZ - 1;
+	return kbd_buf_pos >= KBD_BUF_SZ - 2;
 }
 
 void kbd_buf_backspace(void)
@@ -83,10 +96,22 @@ void kbd_buf_backspace(void)
 	kbd_buf_pos -= 1;
 }
 
+int kbd_copy_buf(void *buf, int size)
+{
+	size = size > kbd_buf_pos ? kbd_buf_pos : size;
+
+	if (size == 0) {
+		con_error("KBD buffer empty?\n");
+	}
+	memcpy(buf, kbd_buf, size);
+	memmove(kbd_buf, kbd_buf+size, kbd_buf_pos - size);
+	kbd_buf_pos -= size;
+	return size;
+}
+
 void kbd_commit_buf(void)
 {
-	/* TODO: commit buffer content to reading proc */
-	kbd_buf_pos = 0;
+	console_read_commit();
 }
 
 void kbd_fill_echo(uint8_t ch)
@@ -97,7 +122,7 @@ void kbd_fill_echo(uint8_t ch)
 		kbd_buf[kbd_buf_pos++] = ch;
 	k_putchar(0, ch);
 	if (!is_kbd_buf_empty() && ch == '\n') {
-		kbd_buf[kbd_buf_pos-1] = '\0';
+		kbd_buf[kbd_buf_pos-1] = '\n';
 		kbd_commit_buf();
 	}
 }

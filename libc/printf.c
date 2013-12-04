@@ -22,7 +22,7 @@
 #define PFMT_DOT 5
 
 
-char buf[BUF_SIZE];
+static char buf[BUF_SIZE];
 size_t pos;
 
 static void flush_buf(void)
@@ -40,9 +40,17 @@ static void write_buf(char c)
 	buf[pos++] = (char)c;
 }
 
+/* Just write into buffer, don't flush here */
+static int _putchar(int c)
+{
+	write_buf((char)c);
+	return c;
+}
+
 int putchar(int c)
 {
 	write_buf((char)c);
+	flush_buf();
 	return c;
 }
 
@@ -50,8 +58,9 @@ int puts(const char *s)
 {
 	size_t count = 0;
 	while (s[count] != '\0')
-		putchar(s[count++]);
-	putchar('\n');
+		_putchar(s[count++]);
+	_putchar('\n');
+	flush_buf();
 	return count;
 }
 
@@ -60,7 +69,8 @@ int puts_nl(const char *s)
 {
 	size_t count = 0;
 	while (s[count] != '\0')
-		putchar(s[count++]);
+		_putchar(s[count++]);
+	flush_buf();
 	return count;
 }
 
@@ -110,7 +120,7 @@ int ltocstr(long i, char *str, const char cmd)
 int strfill(int len, const char c)
 {
     for ( ; len>0; len-- )
-        putchar( c );
+        _putchar( c );
     return 0;   
 }
 
@@ -226,32 +236,32 @@ static int printf_formatter(
 
         if ( s_len >= wid ) {
             if ( number < 0 )
-                putchar( '-' );
+                _putchar( '-' );
             else if ( flg_pos )
-                putchar( '+' );
+                _putchar( '+' );
             else if ( flg_spc )
-                putchar( ' ' ); 
+                _putchar( ' ' ); 
             puts_nl( str );       
             f_len = s_len;
         }
         else {
             if ( altdisp &&  (flg_neg||flg_zro) ) {
                 if ( number < 0 )
-                    putchar( '-' );
+                    _putchar( '-' );
                 else if ( flg_pos )
-                    putchar( '+' );
+                    _putchar( '+' );
                 else
-                    putchar( ' ' ); 
+                    _putchar( ' ' ); 
             }
             if ( !flg_neg )
                 strfill( wid-s_len, numfill );
             if ( altdisp && !(flg_neg||flg_zro) ) {
                 if ( number < 0 )
-                    putchar( '-' );
+                    _putchar( '-' );
                 else if ( flg_pos )
-                    putchar( '+' );
+                    _putchar( '+' );
                 else
-                    putchar( ' ' ); 
+                    _putchar( ' ' ); 
             }
             puts_nl( str);       
             if (  flg_neg )
@@ -267,17 +277,17 @@ static int printf_formatter(
 
         if ( s_len >= wid ) {
             if ( altdisp )
-                putchar( '0' );
+                _putchar( '0' );
             puts_nl( str );       
             f_len = s_len;
         }
         else {
             if ( altdisp &&  (flg_neg||flg_zro) )
-                putchar( '0' );
+                _putchar( '0' );
             if ( !flg_neg )
                 strfill( wid-s_len, numfill );
             if ( altdisp && !(flg_neg||flg_zro) )
-                putchar( '0' );
+                _putchar( '0' );
             puts_nl( str );
             if (  flg_neg )
                 strfill( wid-s_len, ' ' );
@@ -368,7 +378,7 @@ int vprintf(const char *fmt, va_list ap)
     while( (c=*(fmt++)) != '\0' ) {
     
         if ( c != '%' ) { /* normal characters */
-            putchar( c );
+            _putchar( c );
             s_len++;
         }
         else            { /* start with %, do format decode */
@@ -388,7 +398,7 @@ int vprintf(const char *fmt, va_list ap)
 
                 case( '%' ):
                     if ( fmt_state == PFMT_ST_FLG ) {
-                        putchar( '%' );
+                        _putchar( '%' );
                         s_len++;
                     }
                     else 

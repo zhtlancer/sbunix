@@ -4,6 +4,16 @@
 #include <sys/k_stdio.h>
 #include <sys/sched.h>
 
+#define mm_error(fmt, ...)	\
+	k_printf(1, "<MM> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+
+#if DEBUG_MM_VMA
+#define mm_db(fmt, ...)	\
+	k_printf(1, "<MM DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+#else
+#define mm_db(fmt, ...)
+#endif
+
 
 /*-------------------------------------------------------------------------
  * Global Variable
@@ -66,7 +76,7 @@ vma_find
     vma_t       *vma_tmp    = NULL;
     addr_t      vaddr       = (addr_t)(va);
 
-    for ( vma_tmp = vma_head->next; vma_tmp != vma_head; vma_tmp = vma_tmp->next )
+    for ( vma_tmp = vma_head; vma_tmp != vma_head; vma_tmp = vma_tmp->next )
         if ( vaddr >= vma_tmp->vm_start && vaddr < vma_tmp->vm_start )
             return vma_tmp;
 
@@ -94,7 +104,7 @@ vma_duplicate (
 
 	vma_tmp1 = vma_new;
 
-	for (vma_iter = vma_src->next; vma_iter != vma_src; vma_iter = vma_iter->next) {
+	for (vma_iter = vma_src; vma_iter != vma_src; vma_iter = vma_iter->next) {
 		vma_tmp2 = (vma_t *)get_object(objcache_vma_head);
 		vma_tmp2->flag = vma_iter->flag;
 		vma_tmp2->vm_start = vma_iter->vm_start;
@@ -245,6 +255,26 @@ mm_struct_free (
 )
 {
     /* FIXME: should free a mm_struct and all things inside it properly */ 
+} /* mm_struct_free() */
+
+/* free a mm_struct, which should be current mapping */
+/* FIXME: not tested yet */
+void
+mm_struct_free_self (
+    mm_struct_t *mm_s
+)
+{
+	vma_t *vma_iter, *vma_tmp;
+
+	/* unmap all user pages, and free some of them */
+	for (vma_iter = mm_s->mmap; vma_iter != mm_s->mmap; vma_iter = vma_iter->next) {
+		uint64_t va = vma_iter->vm_start;
+		pgt_t *pgt = get_pgt_entry_lv4_self(va);
+		vma_tmp = vma_tmp;
+		pgt = pgt;
+	}
+#if DEBUG_MM_VMA
+#endif
 } /* mm_struct_free() */
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -72,12 +72,14 @@ uint64_t sys_sleep(struct pt_regs *regs)
 
 uint64_t sys_wait(struct pt_regs *regs)
 {
-	return 0;
+	regs->rax = wait((int *)regs->rdi);
+	return regs->rax;
 }
 
 uint64_t sys_waitpid(struct pt_regs *regs)
 {
-	return 0;
+	regs->rax = waitpid(regs->rdi, (int *)regs->rsi, regs->rdx);
+	return regs->rax;
 }
 
 uint64_t sys_exit(struct pt_regs *regs)

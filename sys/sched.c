@@ -113,6 +113,25 @@ struct task_struct *alloc_task(void)
  */
 void free_task(struct task_struct *task)
 {
+	/* TODO */
+
+	/* Free task's kernel stack */
+	free_page(task->stack - __PAGE_SIZE);
+	task->stack = NULL;
+
+	/* free all vma mapped into userspace */
+	mm_struct_free(task->mm);
+	task->mm = NULL;
+
+	task->pid = 0;
+	task->context = NULL;
+	task->tf = NULL;
+	task->state = TASK_UNUSED;
+	task->parent = NULL;
+	task->cr3 = NULL;
+	/* files and cwd already cleaned at exit */
+	task->wait = NULL;
+	task->waitpid = NULL;
 }
 
 void fork_ret(void);
@@ -362,8 +381,95 @@ int execve(const char *pathname, char *const argv[], char *const envp[])
 	return 0;
 }
 
+/* option values for waitpid */
+#define WNOHANG 0x01
+
+/* wait for all child */
+static pid_t wait_all(int *status, int options)
+{
+	int have_kid = 0;
+	pid_t pid;
+	int i;
+	struct task_struct *task;
+
+	for ( ; ; ) {
+		for (i = 0, task = task_table.tasks; i < NPROC; i++, task++) {
+			if (task->parent != current)
+				continue;
+			have_kid = 1;
+			if (task->state == TASK_ZOMBIE) {
+				/* Get child's status, see exit */
+				*status = task->tf->rax;
+				pid = task->pid;
+
+				/* Now free child task and release resource */
+				free_task(task);
+
+				return pid;
+			}
+		}
+
+		if (!have_kid)
+			return -1;
+
+		/* return immediately if WNOHANG set */
+		if (options & WNOHANG)
+			return 0;
+
+		sleep(current);
+	}
+
+	sched_error("Should not reach here! pid=%d\n", current->pid);
+
+	return -1;
+}
+
+pid_t waitpid(pid_t pid, int *status, int options)
+{
+	struct task_struct *task;
+	int i;
+	/* wait for all children */
+	if (pid == -1)
+		return wait_all(status, options);
+
+	for (i = 0, task = task_table.tasks; i < NPROC; i++, task++)
+		if (task->pid == pid)
+			break;
+
+	if (i == NPROC) {
+		sched_db("Child %d not found\n", pid);
+		return -1;
+	}
+
+	if (task->state == TASK_ZOMBIE) {
+		/* Get child's status, see exit */
+		*status = task->tf->rax;
+		pid = task->pid;
+
+		/* Now free child task and release resource */
+		free_task(task);
+
+		return pid;
+	}
+
+	if (task->waitpid != 0) {
+		sched_error("Child(%d)'s waitpid is not zero, already waited?\n", task->pid);
+		panic("Unexpected waitpid behavior!\n");
+	}
+	task->waitpid = 1;
+	sleep(&task->waitpid);
+
+	return pid;
+}
+
+pid_t wait(int *status)
+{
+	return wait_all(status, 0);
+}
+
 void exit(int status)
 {
+	struct task_struct *task;
 	int i;
 
 	/* Close all opened files */
@@ -377,8 +483,18 @@ void exit(int status)
 	/* free process' cwd */
 
 	/* wakeup parent if they are wating */
+	/* first check waitpid */
+	if (current->waitpid) {
+		wakeup_task_obj(current->parent, &current->waitpid);
+	} else {
+		wakeup_obj(current->parent);
+	}
 
 	/* Pass child to idle process */
+	for (i = 0, task = task_table.tasks; i < NPROC; i++, task++) {
+		if (task->parent == current)
+			task->parent = idle_task;
+	}
 
 	/* store process' exit status */
 	current->tf->rax = status;

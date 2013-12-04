@@ -88,21 +88,39 @@ SYSCALL_PROTO(6)(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4,
 }
 
 pid_t fork(void);
+
 int execve(const char *filename, char *const argv[], char *const envp[]);
+
 unsigned int sleep(unsigned int seconds);
+
 pid_t wait(int *status);
+
+/* option values for waitpid */
+#define WNOHANG 0x01
 pid_t waitpid(pid_t pid, int *status, int options);
+
 pid_t _exit(int status);
+
 int kill(pid_t pid, int sig);
+
 pid_t getpid(void);
+
 int open(const char *pathname, int flags, mode_t mode);
+
 int close(int fd);
+
 size_t read(int fd, void *buf, size_t nbyte);
+
 size_t write(int fd, const void *buf, size_t nbyte);
+
 off_t lseek(int fd, off_t offset, int whence);
+
 int getdents(unsigned int fd, struct dirent *dirp, unsigned int count);
+
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
+
 int munmap(void *addr, size_t length);
+
 void *sbrk(intptr_t increment);
 
 #endif

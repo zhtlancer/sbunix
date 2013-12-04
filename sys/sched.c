@@ -131,7 +131,7 @@ void free_task(struct task_struct *task)
 	task->cr3 = NULL;
 	/* files and cwd already cleaned at exit */
 	task->wait = NULL;
-	task->waitpid = NULL;
+	task->waitpid = 0;
 }
 
 void fork_ret(void);
@@ -451,6 +451,9 @@ pid_t waitpid(pid_t pid, int *status, int options)
 
 		return pid;
 	}
+
+	if (options & WNOHANG)
+		return 0;
 
 	if (task->waitpid != 0) {
 		sched_error("Child(%d)'s waitpid is not zero, already waited?\n", task->pid);

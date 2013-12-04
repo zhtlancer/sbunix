@@ -3,6 +3,18 @@
 
 #include <sys/fs.h>
 #include <sys/io.h>
+#include <sys/sched.h>
+#include <sys/con.h>
+
+#define con_error(fmt, ...)	\
+	k_printf(1, "<CON> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+
+#if DEBUG_CONSOLE
+#define con_db(fmt, ...)	\
+	k_printf(1, "<CON DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+#else
+#define con_db(fmt, ...)
+#endif
 
 unsigned char vgatext_x = 0;
 unsigned char vgatext_y = 0;
@@ -69,10 +81,6 @@ int k_putchar( unsigned char lvl, const char c)
 {
     return vgatext_putchar(c);
 }
-
-extern int is_kbd_buf_empty(void);
-extern int is_kbd_buf_full(void);
-extern void kbd_buf_backspace(void);
 
 int vgatext_putchar(const char c)
 {
@@ -678,10 +686,36 @@ void panic(const char *s)
 		;
 }
 
+static struct task_struct *reader;
+
 size_t console_read(struct file *file, void *buf, size_t nbytes)
 {
-	//TODO
-	return 0;
+	if (reader != NULL) {
+		con_db("(%d) Another proc(%d) is already waiting!\n", current->pid, reader->pid);
+		return 0;
+	}
+
+	/* Put proc into sleep if we have nothing to provide */
+	if (is_kbd_buf_empty()) {
+		reader = current;
+		reader->state = TASK_SLEEPING;
+		sched();
+	}
+
+	/* Now read */
+	return kbd_copy_buf(buf, nbytes);
+}
+
+void console_read_commit(void)
+{
+	if (!reader) {
+		con_error("No reader is wait\n");
+		return;
+	}
+
+	reader->wait = NULL;
+	reader->state = TASK_RUNNABLE;
+	reader = NULL;
 }
 
 size_t console_write(struct file *file, void *buf, size_t nbytes)

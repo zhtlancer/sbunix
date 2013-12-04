@@ -108,6 +108,8 @@ struct task_struct {
 
 	struct inode *cwd;
 
+	void *wait;		/* if non-null, sleeping on chan */
+
 	char name[16];
 };
 

@@ -11,11 +11,11 @@
 #include <sys/x86.h>
 
 #define sched_error(fmt, ...)	\
-	k_printf(1, "<ELF> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+	k_printf(1, "<SCHED> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
 
 #if DEBUG_SCHED
 #define sched_db(fmt, ...)	\
-	k_printf(1, "<ELF DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+	k_printf(1, "<SCHED DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
 #else
 #define sched_db(fmt, ...)
 #endif
@@ -166,10 +166,14 @@ static struct task_struct *create_task(const char *name)
 	struct pt_regs *regs;
 	page_t *page;
 	int rval = 0;
-	volatile int d = 1;
 	void *k_stack;
+#if TEST_SCHED
+	volatile int d = 1;
+#endif
 
+#if TEST_SCHED
 	while (d);
+#endif
 	task = alloc_task();
 	if (task == NULL) {
 		sched_error("Failed to alloc task\n");
@@ -199,7 +203,6 @@ static struct task_struct *create_task(const char *name)
 	/* Allocate physical memory and load elf file into it */
 	load_elf(task->mm, &exe);
 
-	while (d);
 	/* Allocate and map user stack */
 	page = alloc_page(PG_USR);
 	map_page(task->mm->pgt, USTACK_TOP - __PAGE_SIZE, 0,
@@ -246,13 +249,6 @@ static struct task_struct *create_task(const char *name)
 	task->files[2] = file_dup(&files[2]);
 
 	task->state = TASK_RUNNABLE;
-
-#if TEST_SCHED
-	current = task;
-	task->state = TASK_RUNNING;
-	tss_set_kernel_stack(task->stack);
-	_switch_to_usermode(task->cr3, task->tf);
-#endif
 
 	return task;
 

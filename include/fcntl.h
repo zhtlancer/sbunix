@@ -8,4 +8,11 @@
 #define O_APPEND	00002000
 #define O_DIRECTORY	00200000	/* must be a directory */
 
+#define DIRSIZ	12
+struct dirent {
+	uint32_t inum;
+	char name[DIRSIZ];
+};
+
 #endif
+/* vim: set ts=4 sw=0 tw=0 noet : */

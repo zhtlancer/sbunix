@@ -37,9 +37,6 @@ typedef uint64_t intptr_t;
 
 typedef int64_t off_t;
 
-struct dirent {
-};
-
 typedef uint32_t mode_t;
 
 #endif

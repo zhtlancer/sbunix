@@ -45,6 +45,8 @@ void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 
 	if (!(ec & PF_EC_PL)) {
 		pf_error("Page fault in supervisor mode at %p, ec=%x\n", cr2, ec);
+		if (regs)
+			pf_error("RIP = %x\n", regs->rip);
 		panic("Unhandled page fault\n");
 	}
 

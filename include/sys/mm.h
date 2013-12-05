@@ -69,6 +69,8 @@
 /* Top of normal user address space */
 #define UNORMAL_TOP		(USTACK_BOTTOM - __PAGE_SIZE)
 
+#define UBRK_LIMIT	(4 * __PAGE_SIZE)
+
 /* TODO: Maybe a illustration of our VM space here? */
 
 /* initialize page structures */

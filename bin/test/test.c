@@ -15,6 +15,12 @@ int main(int argc, char *argv[], char *envp[])
 	int i;
 	int fd;
 	unsigned char buf[512];
+	void *ptr;
+
+	while ((ptr = malloc(20)) != NULL)
+		printf("ptr: %p\n", ptr);
+
+	while (d);
 
 	for (i = 0; i < argc; i++)
 		printf("ARGV[%d]: %s\n", i, argv[i]);

@@ -150,6 +150,8 @@ mm_struct_new (
     mm_s->data_start    = data_start;
     mm_s->data_end      = data_end  ;
 	mm_s->stack_start	= USTACK_TOP - __PAGE_SIZE;
+	mm_s->brk_start		= data_end;
+	mm_s->brk_end		= data_end;
 
     /* setup vma for code */
     vma_tmp             = (vma_t *)get_object( objcache_vma_head );
@@ -276,5 +278,21 @@ mm_struct_free_self (
 #if DEBUG_MM_VMA
 #endif
 } /* mm_struct_free() */
+
+void *sbrk(size_t incr)
+{
+	size_t brk_size = current->mm->brk_end - current->mm->brk_start;
+	void *new_ptr = NULL;
+
+	if ((brk_size + incr) > UBRK_LIMIT) {
+		mm_error("User brk region limitation reached.\n");
+		return (void *)(-1);
+	}
+
+	new_ptr = (void *)current->mm->brk_end;
+	current->mm->brk_end += incr;
+
+	return new_ptr;
+}
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

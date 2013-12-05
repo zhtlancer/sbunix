@@ -4,6 +4,7 @@
 #include <sys/k_stdio.h>
 #include <sys/fs.h>
 #include <sys/pit.h>
+#include <sys/mm_vma.h>
 
 #define SYSCALL_CS	0x08
 #define SYSRET_CS	0x1B
@@ -152,7 +153,8 @@ uint64_t sys_mmap(struct pt_regs *regs)
 
 uint64_t sys_sbrk(struct pt_regs *regs)
 {
-	return 0;
+	regs->rax = (uint64_t)sbrk(regs->rdi);
+	return regs->rax;
 }
 
 uint64_t sys_chdir(struct pt_regs *regs)

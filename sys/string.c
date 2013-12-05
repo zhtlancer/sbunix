@@ -79,4 +79,14 @@ size_t strlcpy(char *dst, const char *src, size_t size)
 	return dst - dst_in;
 }
 
+size_t strnlen(const char *s, size_t maxlen)
+{
+	size_t len = 0;
+
+	while (len < maxlen && s[len] != '\0')
+		++len;
+
+	return len;
+}
+
 /* vim: set ts=4 sw=0 tw=0 noet : */

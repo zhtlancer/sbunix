@@ -108,5 +108,12 @@ int vfs_init(void);
 
 struct inode *path_lookup(struct inode *parent, const char *path);
 
+int fd_open(const char *pathname, int flags, mode_t mode);
+
+int fd_close(int fd);
+
+extern struct file files[];
+extern struct inode inodes[];
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

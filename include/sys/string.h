@@ -19,6 +19,8 @@ void *memmove(void *dest, const void *src, size_t n);
 int strcmp(const char *s1, const char *s2);
 int strncmp(const char *s1, const char *s2, size_t n);
 
+size_t strnlen(const char *s, size_t maxlen);
+
 size_t strlcpy(char *dst, const char *src, size_t n);
 
 #endif

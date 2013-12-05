@@ -25,6 +25,14 @@
 /* The idle proc, which spin forever and run very first */
 #define USER_IDLE	"/bin/idle"
 
+#define MAXARGS	10
+#define MAXARGV_FIELD	(MAXARGS + 2)
+#define MAXARGV_LEN	20
+
+#define MAXENVS	10
+#define MAXENVS_FIELD	(MAXENVS + 2)
+#define MAXENV_LEN	20
+
 struct {
 	/* FIXME: maybe we need a lock to protect this */
 	struct task_struct tasks[NPROC];
@@ -141,7 +149,6 @@ static mm_struct_t *create_uvm(const char *name, uint64_t *entry)
 	mm_struct_t *mm = NULL;
 	struct elf64_executable exe;
 	int rval;
-	page_t *page;
 
 	memset(&exe, 0, sizeof(exe));
 	strlcpy(exe.name, name, ELF_NAME_MAX);
@@ -167,9 +174,7 @@ static mm_struct_t *create_uvm(const char *name, uint64_t *entry)
 	*entry = (uint64_t)exe.entry;
 
 	/* Allocate and map user stack */
-	page = alloc_page(PG_USR);
-	map_page(mm->pgt, USTACK_TOP - __PAGE_SIZE, 0,
-			get_pa_from_page(page), PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
+	/* We moved this to execve, because we need to operate on stack there */
 
 	return mm;
 }
@@ -267,6 +272,9 @@ static struct task_struct *create_task(const char *name)
 	task->files[1] = file_dup(&files[1]);
 	task->files[2] = file_dup(&files[2]);
 
+	/* Set cwd to root */
+	task->cwd = get_inode(rootfs);
+
 	task->state = TASK_RUNNABLE;
 
 	return task;
@@ -311,6 +319,9 @@ struct task_struct *duplicate_task(void)
 			task->files[i] = file_dup(current->files[i]);
 	}
 
+	/* Dup cwd */
+	task->cwd = get_inode(current->cwd);
+
 	return task;
 }
 
@@ -343,12 +354,62 @@ int execve(const char *pathname, char *const argv[], char *const envp[])
 {
 	mm_struct_t *new_mm;
 	uint64_t entry;
+	char *tmp[MAXARGV_FIELD];
+	void *stack;
+	uint64_t ustack_top;
+	size_t len;
+	page_t *page;
+	int i;
 
 	/* create new mm_struct */
 	new_mm = create_uvm(pathname, &entry);
 	if (new_mm == NULL) {
 		sched_error("execve failed\n");
 		return -1;
+	}
+
+	page = alloc_page(PG_USR);
+	map_page(new_mm->pgt, USTACK_TOP - __PAGE_SIZE, 0,
+			get_pa_from_page(page), PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
+
+	/* TODO: setup up user stack based on argv and envp
+	 * XXX: we need to do this before the previous uvm is freed */
+	stack = get_va_from_page(page) + __PAGE_SIZE;
+	ustack_top = USTACK_TOP;
+	if (envp != NULL) {
+		for (i = 0; i < MAXENVS && envp[i] != NULL; i++) {
+			len = strnlen(envp[i], MAXENV_LEN) + 1;
+			stack -= len;
+			ustack_top -= len;
+			strlcpy(stack, envp[i], MAXENV_LEN);
+			tmp[i] = (char *)ustack_top;
+		}
+		tmp[i++] = NULL;
+		len = sizeof(char *) * i;
+		stack -= len;
+		ustack_top -=len;
+		memcpy(stack, tmp, sizeof(char *) * i);
+
+		current->tf->rdx = (uint64_t) ustack_top;
+	} else {
+		current->tf->rdx = 0;
+	}
+	if (argv != NULL) {
+		for (i = 0; i < MAXARGS && argv[i] != NULL; i++) {
+			len = strnlen(argv[i], MAXARGV_LEN) + 1;
+			stack -= len;
+			ustack_top -= len;
+			strlcpy(stack, argv[i], MAXARGV_LEN);
+			tmp[i] = (char *)ustack_top;
+		}
+		tmp[i++] = NULL;
+		len = sizeof(char *) * i;
+		stack -= len;
+		ustack_top -= len;
+		memcpy(stack, tmp, sizeof(char *) * i);
+
+		current->tf->rsi = (uint64_t) ustack_top;
+		current->tf->rdi = i - 1;
 	}
 
 	/* free previous mm_struct and resource */
@@ -371,12 +432,10 @@ int execve(const char *pathname, char *const argv[], char *const envp[])
 	current->files[1] = file_dup(&files[1]);
 	current->files[2] = file_dup(&files[2]);
 
-	/* TODO: setup up user stack based on argv and envp */
-
 	/* rebuild trapframe */
 	current->tf->rip = entry;
 	current->tf->rcx = entry;
-	current->tf->rsp = USTACK_TOP;
+	current->tf->rsp = ustack_top;
 
 	return 0;
 }

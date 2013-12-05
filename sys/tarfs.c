@@ -84,6 +84,21 @@ static void tarfs_test()
 }
 #endif
 
+/* tar_name may have an extra '/' if it's a dir */
+static inline int tarfs_namencmp(const char *tar_name, const char *other, size_t n)
+{
+	while (n > 0 && *tar_name && *other && *tar_name == *other)
+		--n, ++tar_name, ++other;
+
+	if (n == 0)
+		return 0;
+
+	if (*tar_name == '/' && tar_name[1] == '\0')
+		return 0;
+
+	return (int) ((unsigned char)*tar_name - (unsigned char)*other);
+}
+
 static TAR_FILE *tarfs_fopen(const char *name)
 {
 	TAR_FILE *fp;
@@ -95,7 +110,7 @@ static TAR_FILE *tarfs_fopen(const char *name)
 	while (p < (struct posix_header_ustar *)&_binary_tarfs_end) {
 		uint64_t size = get_size(p->size);
 
-		if (!strncmp(p->name, name, sizeof(p->name))) {
+		if (!tarfs_namencmp(p->name, name, sizeof(p->name))) {
 			fp = kmalloc(sizeof(TAR_FILE), PG_SUP);
 			fp->_header = p;
 			fp->_ptr = (void *)p + TARFS_BLOCK_SIZE;
@@ -214,7 +229,7 @@ static struct inode *tarfs_path_lookup(struct inode *parent, const char *path)
 
 	inode = get_inode(NULL);
 	inode->priv_data = tmp;
-	if (full_path[strlen(full_path)-1] == '/')
+	if (tmp->_header->name[strlen(tmp->_header->name)-1] == '/')
 		inode->p_inode.type = IT_DIR;
 	else
 		inode->p_inode.type = IT_FILE;
@@ -260,10 +275,13 @@ static int tarfs_is_parent(const char *pre, const char *s)
 static inline int tarfs_name_copy(char *dst, const char *src)
 {
 	int i = 0;
-	while (i < DIRSIZ && src[i] != '\0' && src[i] != '/') {
+	while (i < DIRSIZ - 2 && src[i] != '\0' && src[i] != '/') {
 		dst[i] = src[i];
 		i += 1;
 	}
+	if (i < DIRSIZ - 2 && src[i] == '/')
+		dst[i++] = '/';
+	dst[i++] = '\0';
 	return i;
 }
 

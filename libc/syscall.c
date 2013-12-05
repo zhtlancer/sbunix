@@ -91,4 +91,8 @@ int chdir(const char *path)
 	return __syscall1(SYS_chdir, (uint64_t)path);
 }
 
+int ps(void *buf, int count)
+{
+	return __syscall2(SYS_ps, (uint64_t)buf, count);
+}
 /* vim: set ts=4 sw=0 tw=0 noet : */

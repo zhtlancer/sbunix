@@ -5,6 +5,8 @@
 #include <sys/fs.h>
 #include <sys/pit.h>
 #include <sys/mm_vma.h>
+#include <sys/sched.h>
+#include <ps.h>
 
 #define SYSCALL_CS	0x08
 #define SYSRET_CS	0x1B
@@ -171,6 +173,14 @@ uint64_t sys_chdir(struct pt_regs *regs)
 	return regs->rax;
 }
 
+uint64_t sys_ps(struct pt_regs *regs)
+{
+	if (regs->rdi == 0)
+		return regs->rax = -1;
+	regs->rax = ps((struct ps_ent *)regs->rdi, regs->rsi);
+	return regs->rax;
+}
+
 
 /*
  * a1: rdi, a2: rsi, a3: rdx, a4: r8, a5: r9, a6: r12
@@ -218,6 +228,8 @@ uint64_t syscall_common(struct pt_regs *regs)
 		return sys_sbrk(regs);
 	case SYS_chdir:
 		return sys_chdir(regs);
+	case SYS_ps:
+		return sys_ps(regs);
 	default:
 		syscall_error("Undefined syscall number (0x%x)\n", syscall_no);
 		break;

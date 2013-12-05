@@ -10,6 +10,8 @@
 #include <sys/syscall.h>
 #include <sys/x86.h>
 
+#include <ps.h>
+
 #define sched_error(fmt, ...)	\
 	k_printf(1, "<SCHED> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
 
@@ -655,6 +657,20 @@ int sched_init(void)
 	}
 
 	return 0;
+}
+
+int ps(struct ps_ent *ps_buf, int count)
+{
+	int i, j = 0;
+
+	for (i = 0; i < NPROC && j < count; i++)
+		if (task_table.tasks[i].state != TASK_UNUSED) {
+			ps_buf[j].pid = task_table.tasks[i].pid;
+			ps_buf[j].state = task_table.tasks[i].state;
+			j++;
+		}
+
+	return j;
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

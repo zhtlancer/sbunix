@@ -63,7 +63,13 @@ void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 		pf_error("Page fault in supervisor mode at %p, ec=%x\n", cr2, ec);
 		if (regs)
 			pf_error("RIP = %x\n", regs->rip);
+		if (current->state == TASK_RUNNING)
+			exit(-1);
 		panic("Unhandled page fault\n");
 	}
+
+	/* Exit execution */
+	if (current->state == TASK_RUNNING)
+		exit(-1);
 }
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -16,7 +16,7 @@ const char *PATH[] = {
 };
 #define N_PATH (sizeof(PATH) / sizeof(char *))
 
-const char *envp[] = {
+char *const envp[] = {
 	"PATH=/bin:/mnt/bin",
 	"SHELL=/bin/sh",
 	NULL,
@@ -55,7 +55,7 @@ static int parse_cmd(char *argv[])
 	int i, j;
 
 	j = 0;
-	for (i = 0; cmd_buf_in[i] != '\0'; i++) {
+	for (i = 0; argc < MAXARGS && cmd_buf_in[i] != '\0'; i++) {
 		if (is_space(cmd_buf_in[i]))
 				continue;
 
@@ -63,6 +63,11 @@ static int parse_cmd(char *argv[])
 		while (cmd_buf_in[i] != '\0' && !is_space(cmd_buf_in[i]))
 			cmd_buf_out[j++] = cmd_buf_in[i++];
 		cmd_buf_out[j++] = '\0';
+	}
+
+	if (argc >= MAXARGS && cmd_buf_in[i] != '\0') {
+		printf("[SH] Too many arguments! At most arguments acceptable.\n");
+		return -1;
 	}
 
 	return argc;
@@ -87,6 +92,15 @@ static int run_builtin_cmd(int argc, char *argv[])
 /* run external command */
 static int run_ext_cmd(int bg, int argc, char *argv[])
 {
+	int i;
+	int len;
+
+	for (i = 0; i < N_PATH; i++) {
+		len = strlcpy(cmd_buf_in, PATH[i], CMD_BUF_SIZE);
+		cmd_buf_in[len++] = '/';
+		strlcpy(cmd_buf_in+len, argv[0], CMD_BUF_SIZE-len);
+		execve(cmd_buf_in, argv, envp);
+	}
 	return 0;
 }
 
@@ -97,6 +111,9 @@ static int run_cmd(char *s, int len)
 	char *argv[MAXARGV_FIELD];
 
 	argc = parse_cmd(argv);
+
+	if (argc < 0)
+		return argc;
 
 	/* First we try to run the command as builtin */
 	if (run_builtin_cmd(argc, argv))

@@ -5,12 +5,20 @@
 
 int temp;
 
-int main()
+int main(int argc, char *argv[], char *envp[])
 {
 	pid_t pid;
 	static volatile unsigned int d = 0xdeadbeef;
 	int test;
 	test = printf("%s", TEST);
+	int i;
+
+	for (i = 0; i < argc; i++)
+		printf("ARGV[%d]: %s\n", i, argv[i]);
+	for (i = 0; envp[i] != NULL; i++)
+		printf("ENVP[%d]: %s\n", i, envp[i]);
+
+	while (d);
 
 	pid = fork();
 

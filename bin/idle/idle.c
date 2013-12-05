@@ -16,6 +16,8 @@ int main()
 	pid_t sh_pid = 0;
 	int status;
 
+	printf("%p\n", argv);
+
 	for ( ; ; ) {
 		pid_t tmp;
 		/* if sh is still alive, continue */

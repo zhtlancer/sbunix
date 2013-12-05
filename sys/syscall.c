@@ -101,12 +101,14 @@ uint64_t sys_getpid(struct pt_regs *regs)
 
 uint64_t sys_open(struct pt_regs *regs)
 {
-	return 0;
+	regs->rax = fd_open((const char *)regs->rdi, regs->rsi, (mode_t)regs->rdx);
+	return regs->rax;
 }
 
 uint64_t sys_close(struct pt_regs *regs)
 {
-	return 0;
+	regs->rax = fd_close(regs->rdi);
+	return regs->rax;
 }
 
 uint64_t sys_read(struct pt_regs *regs)

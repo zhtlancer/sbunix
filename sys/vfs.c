@@ -7,6 +7,7 @@
 #include <sys/error.h>
 #include <sys/k_stdio.h>
 #include <sys/dev.h>
+#include <sys/sched.h>
 
 #define fs_error(fmt, ...)	\
 	k_printf(1, "<FS> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
@@ -48,7 +49,6 @@ static void free_inode(struct inode *inode)
 {
 	memset(inode, 0, sizeof(struct inode));
 }
-
 /* Add ref to inode, or allocate a new inode copy if inode==NULL */
 struct inode *get_inode(struct inode *inode)
 {
@@ -141,14 +141,14 @@ struct inode *path_lookup(struct inode *parent, const char *path)
 	struct inode *inode = NULL;
 	int get_parent = 0;
 
+	if (path[0] == '/') {
+		get_parent = 1;
+		parent = get_inode(rootfs);
+	}
+
 	/* If parent not provided, start from rootfs */
 	if (parent == NULL) {
-		if (path[0] != '/') {
-			return (void *)-EINVAL;
-		} else {
-			parent = get_inode(rootfs);
-			get_parent = 1;
-		}
+		return NULL;
 	}
 
 	if (is_rootfs(parent))
@@ -160,24 +160,6 @@ struct inode *path_lookup(struct inode *parent, const char *path)
 		put_inode(parent);
 
 	return inode;
-}
-
-void file_close(struct file *file)
-{
-	if (file->ref <= 0) {
-		k_printf(0, "Putting an unreferenced file %p\n", file);
-		panic("file_put error\n");
-	}
-	file->ref -= 1;
-	if (file->ref == 0 && file->f_ops->close != NULL) {
-		file->f_ops->close(file); /* don't operate on inode here */
-
-		file->readable = 0;
-		file->writeable = 0;
-		file->offset = 0;
-		file->inode = NULL;
-		file->f_ops = NULL;
-	}
 }
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

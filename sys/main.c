@@ -23,10 +23,6 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	/* set vgatext virtual address base */
 	vgatext_vbase = ((addr_t)&kernofs)+VGATEXT_PBASE;
 
-	volatile int d = 1;
-
-	while (d);
-
 	mm_init(modulep, physbase, physfree);
 
     /* PCI initialization */

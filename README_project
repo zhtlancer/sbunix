@@ -1,4 +1,5 @@
 Shenghsun Cho (019348043)
+Tao Zhang (109398890)
 
 ---------------------------------------------------------------------------
 System Call
@@ -20,7 +21,11 @@ write
 lseek
 getdents
 mmap
+munmap
 sbrk
+chdir
+ps
+ulimit
 
 ---------------------------------------------------------------------------
 API
@@ -30,7 +35,7 @@ The following APIs are implemented:
 
 malloc
 fork
-execv
+execve(with argv[] and envp[] support)
 wait
 waitpid
 getpid
@@ -55,6 +60,8 @@ PATH
 ls
 ps
 sleep
+ulimit
+exit
 
 ---------------------------------------------------------------------------
 File System
@@ -106,4 +113,22 @@ Demo Program: stdio (bin/stdio/stdio.c)
 We implemented printf and scanf. for scanf, only %d and %s
 (without and modifier) are supported. User input will be
 read from STDIN and written to STDOUT.
+
+-----------------------------------------------------------
+
+Demo Program: malloc-test (bin/malloc-test/malloc-test.c)
+
+Test on demand malloc memory allocation and limit.
+
+-----------------------------------------------------------
+
+Demo Program: fork-test (bin/fork-test/fork-test.c)
+
+Test fork system call.
+
+-----------------------------------------------------------
+
+Demo Program: argv (bin/argv/argv.c)
+
+Test argv[] and envp[] passing.
 

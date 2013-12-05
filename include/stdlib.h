@@ -12,5 +12,7 @@ struct dirent *readdir(DIR *dirp);
 
 int closedir(DIR *dirp);
 
+void *malloc(size_t size);
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

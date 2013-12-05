@@ -63,6 +63,70 @@ vma_set
     return 0;
 }/* vma_set() */
 
+static int check_overlap(uint64_t s1, uint64_t e1, uint64_t s2, uint64_t e2)
+{
+	return ((s1 <= e2) && (e1 >= s2));
+}
+
+vma_t *vma_alloc(vma_t *vma_head, uint64_t start, uint64_t length)
+{
+	vma_t *vma_tmp = NULL;
+	int overlap = 0;
+	int found = 0;
+
+	while (1) {
+		overlap = 0;
+		for (vma_tmp = vma_head; vma_tmp != vma_head; vma_tmp = vma_tmp->next)
+			if (check_overlap(start, start+length, vma_tmp->vm_start, vma_tmp->vm_end)) {
+				mm_db("Overlap at (%x, %x) (%x, %x)\n", start, start+length, vma_tmp->vm_start, vma_tmp->vm_end);
+				overlap = 1;
+				break;
+			}
+
+		if (overlap) {
+			start += __PAGE_SIZE;
+
+			if (start + length > USTACK_BOTTOM)
+				break;
+
+			continue;
+		}
+
+		found = 1;
+		break;
+	}
+
+	if (!found)
+		return NULL;
+
+	vma_tmp = (vma_t *)get_object(objcache_vma_head);
+	vma_tmp->vm_start = start;
+	vma_tmp->vm_end = start + length;
+
+	return vma_tmp;
+}
+
+void vma_delete(vma_t *vma)
+{
+	vma_t *prev, *next;
+
+	if (vma->prev == vma)
+		return;
+	prev = vma->prev;
+	next = vma->next;
+
+	prev->next = next;
+	next->prev = prev;
+
+	/* FIXME: reclaim the memory of vma) */
+}
+
+void vma_insert(vma_t *vma_head, vma_t *vma_new)
+{
+	vma_new->next = vma_head;
+	vma_head->prev->next = vma_new;
+	vma_head->prev = vma_new;
+}
 
 /* check if a virtual address within given vma list */
 /* FIXME: not tested yet */
@@ -97,7 +161,7 @@ vma_duplicate (
 	vma_new->vm_start = vma_src->vm_start;
 	vma_new->vm_end = vma_src->vm_end;
 	vma_new->anon_vma = vma_src->anon_vma;
-	vma_new->file = vma_src->anon_vma;
+	vma_new->file = vma_src->file;
 	vma_new->ofs = vma_src->ofs;
 	vma_new->prev = vma_new;
 	vma_new->next = vma_new;
@@ -110,7 +174,7 @@ vma_duplicate (
 		vma_tmp2->vm_start = vma_iter->vm_start;
 		vma_tmp2->vm_end = vma_iter->vm_end;
 		vma_tmp2->anon_vma = vma_iter->anon_vma;
-		vma_tmp2->file = vma_iter->anon_vma;
+		vma_tmp2->file = vma_iter->file;
 		vma_tmp2->ofs = vma_iter->ofs;
 
 		vma_tmp2->prev = vma_tmp1;
@@ -150,6 +214,8 @@ mm_struct_new (
     mm_s->data_start    = data_start;
     mm_s->data_end      = data_end  ;
 	mm_s->stack_start	= USTACK_TOP - __PAGE_SIZE;
+	mm_s->brk_start		= data_end;
+	mm_s->brk_end		= data_end;
 
     /* setup vma for code */
     vma_tmp             = (vma_t *)get_object( objcache_vma_head );
@@ -276,5 +342,21 @@ mm_struct_free_self (
 #if DEBUG_MM_VMA
 #endif
 } /* mm_struct_free() */
+
+void *sbrk(size_t incr)
+{
+	size_t brk_size = current->mm->brk_end - current->mm->brk_start;
+	void *new_ptr = NULL;
+
+	if ((brk_size + incr) > UBRK_LIMIT) {
+		mm_error("User brk region limitation reached.\n");
+		return (void *)(-1);
+	}
+
+	new_ptr = (void *)current->mm->brk_end;
+	current->mm->brk_end += incr;
+
+	return new_ptr;
+}
 
 /* vim: set ts=4 sw=0 tw=0 noet : */

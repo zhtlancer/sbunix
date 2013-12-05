@@ -116,6 +116,12 @@ int fd_close(int fd);
 
 int fd_getdents(int fd, struct dirent *dirp, int count);
 
+int chdir(const char *path);
+
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
+
+int munmap(void *addr, size_t length);
+
 extern struct file files[];
 extern struct inode inodes[];
 

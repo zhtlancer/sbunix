@@ -20,6 +20,10 @@ extern uint64_t kvma_end;
 extern objcache_t *objcache_vma_head;
 extern objcache_t *objcache_mm_struct_head;
 
+vma_t *vma_alloc(vma_t *vma_head, uint64_t start, uint64_t length);
+
+void vma_insert(vma_t *vma_head, vma_t *vma_new);
+void vma_delete(vma_t *vma);
 
 /*-------------------------------------------------------------------------
  * Function
@@ -73,6 +77,8 @@ void
 mm_struct_free_self (
     mm_struct_t *mm_s
 );
+
+void *sbrk(size_t incr);
 
 #endif /* __MM_VMA_H__ */
 /* vim: set ts=4 sw=0 tw=0 noet : */

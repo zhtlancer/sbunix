@@ -135,7 +135,7 @@ int fd_close(int fd)
 {
 	struct file *file;
 	int rval = 0;
-
+	
 	if (fd >= NFILE_PER_PROC)
 		return -1;
 	if (current->files[fd] == NULL)

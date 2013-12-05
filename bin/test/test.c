@@ -18,6 +18,12 @@ int main(int argc, char *argv[], char *envp[])
 	for (i = 0; envp[i] != NULL; i++)
 		printf("ENVP[%d]: %s\n", i, envp[i]);
 
+	i = open( "/mnt/test_dir2/test_file", 0, 0 );
+	printf( "OPEN return %d\n", i );
+
+	i = close( i );
+	printf( "OPEN return %d\n", i );
+
 	while (d);
 
 	pid = fork();

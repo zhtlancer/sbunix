@@ -134,6 +134,16 @@ static int run_cmd(char *s, int len)
 
 static int builtin_help(int argc, char **argv)
 {
+	int i;
+	printf("SBSH help\n");
+	printf("\tenvp:");
+	for (i = 0; envp[i] != NULL; i++)
+		printf("%s ", envp[i]);
+	printf("\n");
+
+	printf("\tAvalible built-in commands:\n");
+	for (i = 0; i < N_BUILTIN_CMD; i++)
+		printf("\t%s\t%s\n", builtin_cmd[i].name, builtin_cmd[i].desc);
 	return 0;
 }
 

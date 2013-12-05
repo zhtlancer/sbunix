@@ -173,12 +173,27 @@ int fd_close(int fd)
 
 int fd_getdents(int fd, struct dirent *dirp, int count)
 {
-	/*struct inode *inode;*/
+	struct file *file;
+	struct inode *inode;
+	int rval = 0;
 	if (check_fd(fd))
 		return -1;
 
-	/*inode = current->files[fd]->inode;*/
-	return 0;
+	file = current->files[fd];
+
+	if ((file->offset % sizeof(struct dirent)) != 0) {
+		fs_error("File offset (%d) is not aligned by dirent\n", file->offset);
+		return -1;
+	}
+
+	inode = current->files[fd]->inode;
+	if (inode == NULL || inode->fs_ops == NULL || inode->fs_ops->getdirents == NULL)
+		return -1;
+
+	rval = inode->fs_ops->getdirents(inode, dirp, file->offset/sizeof(struct dirent), count);
+	if (rval > 0)
+		file->offset += rval * sizeof(struct dirent);
+	return rval;
 }
 
 static off_t file_seek(struct file *file, off_t offset, int pos)

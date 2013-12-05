@@ -205,6 +205,9 @@ static struct inode *tarfs_path_lookup(struct inode *parent, const char *path)
 	}
 	full_path[i] = '\0';
 
+	if (i == 0)
+		return get_inode(rootfs);
+
 	tmp = tarfs_fopen(full_path);
 	if (tmp == NULL)
 		return NULL;
@@ -240,12 +243,28 @@ static size_t tarfs_write(struct inode *inode, void *src, off_t off, size_t n)
 	return 0;
 }
 
-static int tarfs_is_abprefix(const char *pre, const char *s)
+static int tarfs_is_parent(const char *pre, const char *s)
 {
 	int i = 0;
 	while (pre[i] != '\0' && s[i] != '\0' && pre[i] == s[i])
 		i += 1;
-	return pre[i] == '\0' && s[i] != '\0';
+	if (pre[i] != '\0')
+		return 0;
+	while (s[i] != '\0' && s[i] != '/')
+		i += 1;
+	if (s[i] == '\0' || s[i+1] == '\0')
+		return 1;
+	return 0;
+}
+
+static inline int tarfs_name_copy(char *dst, const char *src)
+{
+	int i = 0;
+	while (i < DIRSIZ && src[i] != '\0' && src[i] != '/') {
+		dst[i] = src[i];
+		i += 1;
+	}
+	return i;
 }
 
 static int tarfs_getdirents(struct inode *inode, void *buf, int offset, int count)
@@ -268,11 +287,11 @@ static int tarfs_getdirents(struct inode *inode, void *buf, int offset, int coun
 	i = 0;
 
 	for ( ; hdr_tmp != NULL; hdr_tmp = tarfs_header_walk(hdr_tmp)) {
-		if (!tarfs_is_abprefix(hdr->name, hdr_tmp->name))
+		if (!tarfs_is_parent(hdr->name, hdr_tmp->name))
 			continue;
 
 		if (offset <= 0 && i < count) {
-			strlcpy(dirents[i].name, hdr_tmp->name+len, DIRSIZ);
+			tarfs_name_copy(dirents[i].name, hdr_tmp->name+len);
 			dirents[i].inum = 0;
 			i++;
 		}

@@ -1,3 +1,74 @@
+
+
+---------------------------------------------------------------------------
+System Call
+---------------------------------------------------------------------------
+
+The following system calls are implemented:
+
+fork
+execve
+sleep
+wait
+waitpid
+exit
+getpid
+open
+close
+read
+write
+lseek
+getdents
+mmap
+sbrk
+
+---------------------------------------------------------------------------
+API
+---------------------------------------------------------------------------
+
+The following APIs are implemented:
+
+malloc
+fork
+execv
+wait
+waitpid
+getpid
+open(opendir)
+close(closedir)
+read(readdir)
+exit
+printf
+scanf
+seek
+write
+mmap
+
+---------------------------------------------------------------------------
+Shell Function / Binary
+---------------------------------------------------------------------------
+
+The following functions are implemented:
+
+cd
+PATH
+ls
+ps
+sleep
+
+---------------------------------------------------------------------------
+File System
+---------------------------------------------------------------------------
+
+/--+--bin
+   +--etc
+   +--lib
+   +--mnt -> mount point to sata disk (image file)
+
+---------------------------------------------------------------------------
+User Space Demo Program
+---------------------------------------------------------------------------
+
 -----------------------------------------------------------
 
 Demo Program: sata (bin/sata/sata.c)
@@ -30,16 +101,9 @@ sys/vfs.c
 
 -----------------------------------------------------------
 
-Demo Program: sleep (bin/sleep/sleep.c)
-
-We implemented printf and scanf. for scanf, only %d and %s
-(without and modifier) are supported.
-
------------------------------------------------------------
-
 Demo Program: stdio (bin/stdio/stdio.c)
 
 We implemented printf and scanf. for scanf, only %d and %s
 (without and modifier) are supported. User input will be
-read from STDIN and write to STDOUT.
+read from STDIN and written to STDOUT.
 

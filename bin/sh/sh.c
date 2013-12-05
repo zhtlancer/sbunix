@@ -70,6 +70,8 @@ static int parse_cmd(char *argv[])
 		return -1;
 	}
 
+	argv[argc] = NULL;
+
 	return argc;
 }
 
@@ -94,18 +96,20 @@ static int run_ext_cmd(int bg, int argc, char *argv[])
 {
 	int i;
 	int len;
+	int fd;
+	int rval = -1;
 
 	for (i = 0; i < N_PATH; i++) {
 		len = strlcpy(cmd_buf_in, PATH[i], CMD_BUF_SIZE);
 		cmd_buf_in[len++] = '/';
 		strlcpy(cmd_buf_in+len, argv[0], CMD_BUF_SIZE-len);
-		execve(cmd_buf_in, argv, envp);
+		fd = open(cmd_buf_in, 0, 0);
+		if (fd < 0)
+			continue;
+		close(fd);
+		rval = execve(cmd_buf_in, argv, envp);
 	}
-	/*strlcpy(cmd_buf_in, argv[0], CMD_BUF_SIZE);*/
-	/*len = open(cmd_buf_in, 0, 0);*/
-	/*printf("FD: %d\n", len);*/
-	/*close(len);*/
-	return 0;
+	return rval;
 }
 
 static int run_cmd(char *s, int len)
@@ -155,7 +159,12 @@ static int builtin_exit(int argc, char **argv)
 
 static int builtin_cd(int argc, char **argv)
 {
-	return 0;
+	if (argc <= 1) {
+		printf("Usage: cd path_to_targe_dir\n");
+		return 1;
+	}
+
+	return chdir(argv[1]);
 }
 
 int main(int argc, char *argv[], char *envp[])
@@ -167,6 +176,8 @@ int main(int argc, char *argv[], char *envp[])
 	while (1) {
 		printf("# ");
 		len = gets_l(cmd_buf_in, CMD_BUF_SIZE);
+		if (len <= 0)
+			continue;
 		run_cmd(cmd_buf_in, len);
 	}
 

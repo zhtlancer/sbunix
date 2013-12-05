@@ -116,6 +116,8 @@ int fd_close(int fd);
 
 int fd_getdents(int fd, struct dirent *dirp, int count);
 
+int chdir(const char *path);
+
 extern struct file files[];
 extern struct inode inodes[];
 

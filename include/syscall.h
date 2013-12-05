@@ -124,5 +124,7 @@ int munmap(void *addr, size_t length);
 
 void *sbrk(intptr_t increment);
 
+int chdir(const char *path);
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

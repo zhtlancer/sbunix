@@ -212,8 +212,8 @@ static struct inode *sbfs_path_lookup(struct inode *parent, const char *path)
 		}
 
 		if ( cnt == -1 ) {
-			sbfs_error( "SBFS path_not_found.\n" );
-			return parent;
+			sbfs_db( "SBFS path_not_found.\n" );
+			return NULL;
 		}
 		else			{
 			pinode_nr 	= dentry_list[cnt].pinode_nr;

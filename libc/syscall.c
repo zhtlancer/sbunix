@@ -86,4 +86,9 @@ void *sbrk(intptr_t increment)
 	return (void *)__syscall1(SYS_sbrk, increment);
 }
 
+int chdir(const char *path)
+{
+	return __syscall1(SYS_chdir, (uint64_t)path);
+}
+
 /* vim: set ts=4 sw=0 tw=0 noet : */

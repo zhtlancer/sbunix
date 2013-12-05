@@ -155,6 +155,13 @@ uint64_t sys_sbrk(struct pt_regs *regs)
 	return 0;
 }
 
+uint64_t sys_chdir(struct pt_regs *regs)
+{
+	regs->rax = chdir((const char *)regs->rdi);
+	return regs->rax;
+}
+
+
 /*
  * a1: rdi, a2: rsi, a3: rdx, a4: r8, a5: r9, a6: r12
  */
@@ -197,6 +204,8 @@ uint64_t syscall_common(struct pt_regs *regs)
 		return sys_mmap(regs);
 	case SYS_sbrk:
 		return sys_sbrk(regs);
+	case SYS_chdir:
+		return sys_chdir(regs);
 	default:
 		syscall_error("Undefined syscall number (0x%x)\n", syscall_no);
 		break;

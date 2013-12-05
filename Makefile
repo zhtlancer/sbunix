@@ -31,7 +31,11 @@ $(USER).img:
 kernel: $(patsubst %.s,obj/%.asm.o,$(KERN_SRCS:%.c=obj/%.o)) obj/tarfs.o
 	$(LD) $(LDLAGS) -o $@ -T linker.script $^
 
-obj/tarfs.o: $(BINS)
+$(ROOTFS)/mnt:
+	mkdir $(ROOTFS)/mnt
+	touch $(ROOTFS)/mnt/.empty
+
+obj/tarfs.o: $(BINS) $(ROOTFS)/mnt
 	tar --format=ustar -cvf tarfs --no-recursion -C $(ROOTFS) $(shell find $(ROOTFS)/ -name boot -prune -o ! -name .empty -printf "%P\n")
 	objcopy --input binary --binary-architecture i386 --output elf64-x86-64 tarfs $@
 	@rm tarfs

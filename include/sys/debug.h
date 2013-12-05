@@ -24,12 +24,23 @@
 /*
  * DEBUG switch for scheduler
  */
-#define DEBUG_SCHED 1
+#define DEBUG_SCHED 0
 
 /*
  * DEBUG switch for page-fault handler
  */
 #define DEBUG_PF 1
+
+/*
+<<<<<<< HEAD
+ * DEBUG switch for PCI
+ */
+#define DEBUG_PCI	0
+
+/*
+ * DEBUG switch for AHCI
+ */
+#define DEBUG_AHCI	0
 
 /*
  * DEBUG switch for FS

@@ -61,7 +61,7 @@ enum INODE_TYPE {
 struct p_inode {
 	uint16_t type;		/* inode type */
 	uint16_t major;
-	uint16_t minor;
+	uint16_t minor;		/* FIXME: current used as p_inode number */
 	uint16_t nlink;		/* number of hard links */
 	uint32_t size;		/* file size (in bytes) */
 	uint32_t addrs[NDIRECT+1];	/* file block addresses */
@@ -78,6 +78,7 @@ struct inode {
 	/* Copy of disk inode */
 	struct p_inode p_inode;
 };
+
 
 extern struct file files[];
 extern struct inode inodes[];

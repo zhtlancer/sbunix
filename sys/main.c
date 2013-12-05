@@ -8,6 +8,8 @@
 #include <sys/sched.h>
 #include <sys/tarfs.h>
 #include <sys/elf.h>
+#include <sys/pci.h>
+#include <sys/ahci.h>
 #include <sys/syscall.h>
 #include <sys/console.h>
 #include <sys/dev.h>
@@ -22,6 +24,9 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	vgatext_vbase = ((addr_t)&kernofs)+VGATEXT_PBASE;
 
 	mm_init(modulep, physbase, physfree);
+
+    /* PCI initialization */
+	pci_init();
 
 	dev_init();
 

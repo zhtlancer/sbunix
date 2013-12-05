@@ -40,6 +40,16 @@ get_pgt_entry
     addr_t      va
 );
 
+void *
+map_pa_kernel (
+    addr_t      paddr   , /* page PA  which will be mapped to VA            */ 
+    uint08_t    nx      , /* for page table entry: nx bit                   */
+    uint08_t    avl_1   , /* for page table entry: available to software    */
+    uint16_t    avl_2   , /* for page table entry: available to software    */
+    uint08_t    flag_pgt  /* for page table entry: flags for page table     */
+);
+
+
 /* map a page using self-reference technique */
 int
 map_page_self (

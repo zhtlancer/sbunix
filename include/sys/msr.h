@@ -9,6 +9,8 @@
 #define MSR_ADDR_CSTAR	0xC0000083
 #define MSR_ADDR_SFMASK	0xC0000084
 
+#define EFER_NXE        0x800UL
+
 static inline uint64_t rdmsr(uint32_t addr)
 {
 	uint32_t low, high;

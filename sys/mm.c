@@ -1,6 +1,9 @@
 
 #include <defs.h>
+#include <sys/io.h>
+#include <sys/pci.h>
 #include <sys/mm.h>
+#include <sys/msr.h>
 #include <sys/k_stdio.h>
 
 #define mm_error(fmt, ...)	\
@@ -85,6 +88,16 @@ init_page
 }/* init_page() */
 
 
+page_t *
+get_page_from_pa
+(
+    addr_t pa
+)
+{
+    uint64_t page_idx = (uint64_t)(pa>>__PAGE_SIZE_SHIFT)-(uint64_t)page_index_begin;
+    return (page_struct_begin+page_idx);
+}/* get_page_from_pa() */
+
 
 page_t *
 get_page_from_va
@@ -98,18 +111,27 @@ get_page_from_va
 }/* get_page_from_va() */
 
 
-
-/* FIXME: should be deprecated in the future
- * FIX: Actually this gives the va mapping in kernel space, can be used safely
- */
 void *
-get_va_from_page
+get_va_from_page /* only for kernel space mapping */
 (
     page_t  *page
 )
 {
     return (void *)(page->va);
 }/* get_va_from_page() */
+
+
+void *
+get_va_from_pa /* for kernel space mapping */
+(
+    addr_t  pa
+)
+{
+    addr_t  page_va     = (addr_t)get_va_from_page( get_page_from_pa(pa) );
+    addr_t  offset      = pa & (addr_t)0xFFF;
+    return (void *)(page_va|offset);
+
+} /* get_va_from_pa() */
 
 
 addr_t
@@ -130,7 +152,7 @@ get_page_from_pgt
 {
     uint64_t page_idx = (uint64_t)(pgt_tmp->paddr)-(uint64_t)page_index_begin;
     return (page_struct_begin+page_idx);
-} /* get_page_from_pa() */
+} /* get_page_from_pgt() */
 
 
 
@@ -140,7 +162,9 @@ get_pa_from_va
     void    *va
 )
 {
-    return get_pa_from_page( get_page_from_va(va) );
+    addr_t  offset  = (addr_t)va & (addr_t)0xFFF;
+    addr_t  page_pa = get_pa_from_page( get_page_from_va(va) );
+    return  page_pa + offset;
 }/* get_pa_from_page() */
 
 
@@ -708,16 +732,13 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	vma_set( &kvma_head, (addr_t)&kernofs, kvma_end,
 			NULL, NULL, 0, 0, 0, 0, 0 );
 
-    /* read/write MSR register */
-	uint32_t reg_temp_lo;
-	uint32_t reg_temp_hi;
-	__asm__ volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
-	k_printf ( 0, "efer_hi=%X", ((uint64_t)reg_temp_hi<<32)+reg_temp_lo );
-	reg_temp_lo |= 0x800;
-	__asm__ volatile("wrmsr" : : "a"(reg_temp_lo), "d"(reg_temp_hi),  "c"(0xC0000080));
-	__asm__ volatile("rdmsr" : "=a"(reg_temp_lo), "=d"(reg_temp_hi) : "c"(0xC0000080));
-	k_printf ( 0, "efer_hi=%X", ((uint64_t)reg_temp_hi<<32)+reg_temp_lo );
-
+    /* read/write MSR: set EFER NXE bit */
+    uint64_t msr_temp;
+    msr_temp = rdmsr(MSR_ADDR_EFER);
+	//k_printf( 0, "efer_hi=%X", msr_temp );
+    msr_temp |= EFER_NXE;
+	wrmsr(MSR_ADDR_EFER, (uint32_t)(msr_temp & 0xFFFFFFFF), (uint32_t)(msr_temp >> 32));
+	//k_printf( 0, "efer_hi=%X", msr_temp );
 
     /*---------------------------------------
 	 * create kernel object caches

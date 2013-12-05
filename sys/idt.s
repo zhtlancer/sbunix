@@ -11,16 +11,6 @@ _x86_64_asm_lidt:
 
 	retq
 
-/* Stack-fault exception */
-.global x86_64_asm_irq_12
-x86_64_asm_irq_12:
-	xchgq	(%rsp), %rax		/* error code */
-	pushq	%rbx
-	pushq	%rcx
-    movq	$12, %rbx			/* interrupt number */
-    movabsq $._x86_64_asm_irq_common, %rcx
-    jmpq    *%rcx
-
 /* Page-fault exception */
 .global x86_64_asm_irq_14
 x86_64_asm_irq_14:

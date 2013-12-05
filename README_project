@@ -1,0 +1,109 @@
+Shenghsun Cho (019348043)
+
+---------------------------------------------------------------------------
+System Call
+---------------------------------------------------------------------------
+
+The following system calls are implemented:
+
+fork
+execve
+sleep
+wait
+waitpid
+exit
+getpid
+open
+close
+read
+write
+lseek
+getdents
+mmap
+sbrk
+
+---------------------------------------------------------------------------
+API
+---------------------------------------------------------------------------
+
+The following APIs are implemented:
+
+malloc
+fork
+execv
+wait
+waitpid
+getpid
+open(opendir)
+close(closedir)
+read(readdir)
+exit
+printf
+scanf
+seek
+write
+mmap
+
+---------------------------------------------------------------------------
+Shell Function / Binary
+---------------------------------------------------------------------------
+
+The following functions are implemented:
+
+cd
+PATH
+ls
+ps
+sleep
+
+---------------------------------------------------------------------------
+File System
+---------------------------------------------------------------------------
+
+/--+--bin
+   +--etc
+   +--lib
+   +--mnt -> mount point to sata disk (image file)
+
+---------------------------------------------------------------------------
+User Space Demo Program
+---------------------------------------------------------------------------
+
+-----------------------------------------------------------
+
+Demo Program: sata (bin/sata/sata.c)
+
+We implemented read/write/seek and create an image file
+called demo.img with preloaded dirs and a file.
+The struct of demo.img is:
+
+.
+..
+test_dir -> dir which points to .
+test_dir2
+   |
+   |-- test_file -> a 8192 bytes file
+   
+You can run "sata" in the shell to read/write the test_file.
+Changes to this file will be written back to the image file.
+
+Limitations:
+The file cannot be extended, and we didn't implement 
+cp/mkdir/rm so you cannot create/delete files/directories.
+
+
+SATA/file system related code:
+sys/fd_file.c
+sys/ahci.c
+sys/pci.c
+sys/sbfs.c
+sys/vfs.c
+
+-----------------------------------------------------------
+
+Demo Program: stdio (bin/stdio/stdio.c)
+
+We implemented printf and scanf. for scanf, only %d and %s
+(without and modifier) are supported. User input will be
+read from STDIN and written to STDOUT.
+

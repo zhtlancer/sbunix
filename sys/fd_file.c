@@ -247,6 +247,39 @@ static size_t file_write(struct file *file, void *buf, size_t nbytes)
 	return nwrite;
 }
 
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
+{
+	struct inode *inode;
+	vma_t *vma_tmp;
+	uint64_t va;
+	if (check_fd(fd) < 0 || current->files[fd]->inode == NULL)
+		return NULL;
+
+	inode = current->files[fd]->inode;
+	if (offset + length > inode->p_inode.size)
+		return NULL;
+
+	if ((vma_tmp = vma_alloc(current->mm->mmap, (uint64_t)addr, length)) == NULL)
+		return NULL;
+
+	for (va = vma_tmp->vm_start; va < vma_tmp->vm_end; va += __PAGE_SIZE) {
+		map_page_self(va, 1, 0, PG_USR, 0, 0, 0, PGT_USR | PGT_RW);
+	}
+	vma_tmp->file = (addr_t)inode;
+	vma_tmp->ofs = offset;
+
+	inode->fs_ops->read(inode, (void *)vma_tmp->vm_start, offset, length);
+
+	vma_insert(current->mm->mmap, vma_tmp);
+
+	return (void *)vma_tmp->vm_start;
+}
+
+int munmap(void *addr, size_t length)
+{
+	return 0;
+}
+
 struct file_operations regular_fops = {
 	.seek = file_seek,
 	.read = file_read,

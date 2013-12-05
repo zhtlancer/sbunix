@@ -20,6 +20,9 @@ extern uint64_t kvma_end;
 extern objcache_t *objcache_vma_head;
 extern objcache_t *objcache_mm_struct_head;
 
+vma_t *vma_alloc(vma_t *vma_head, uint64_t start, uint64_t length);
+
+void vma_insert(vma_t *vma_head, vma_t *vma_new);
 
 /*-------------------------------------------------------------------------
  * Function

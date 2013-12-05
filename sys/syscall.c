@@ -148,7 +148,15 @@ uint64_t sys_getdents(struct pt_regs *regs)
 
 uint64_t sys_mmap(struct pt_regs *regs)
 {
-	return 0;
+	regs->rax = (uint64_t)mmap((void *)regs->rdi, regs->rsi, regs->rdx, regs->r8,
+			regs->r9, regs->r12);
+	return regs->rax;
+}
+
+uint64_t sys_munmap(struct pt_regs *regs)
+{
+	regs->rax = munmap((void *)regs->rdi, regs->rsi);
+	return regs->rax;
 }
 
 uint64_t sys_sbrk(struct pt_regs *regs)
@@ -204,6 +212,8 @@ uint64_t syscall_common(struct pt_regs *regs)
 		return sys_getdents(regs);
 	case SYS_mmap:
 		return sys_mmap(regs);
+	case SYS_munmap:
+		return sys_munmap(regs);
 	case SYS_sbrk:
 		return sys_sbrk(regs);
 	case SYS_chdir:

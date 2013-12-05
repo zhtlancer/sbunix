@@ -16,6 +16,16 @@
 
 struct file_operations regular_fops;
 
+/* return <0 on invalid fd */
+static inline int check_fd(int fd)
+{
+	if (fd < 0 || fd >= NFILE_PER_PROC || current->files[fd] == NULL) {
+		fs_error("Invalid fd(%d)\n", fd);
+		return -1;
+	}
+	return 0;
+}
+
 static struct file *alloc_file(void)
 {
 	int i;
@@ -159,6 +169,16 @@ int fd_close(int fd)
 	}
 
 	return rval;
+}
+
+int fd_getdents(int fd, struct dirent *dirp, int count)
+{
+	/*struct inode *inode;*/
+	if (check_fd(fd))
+		return -1;
+
+	/*inode = current->files[fd]->inode;*/
+	return 0;
 }
 
 static off_t file_seek(struct file *file, off_t offset, int pos)

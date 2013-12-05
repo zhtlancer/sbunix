@@ -5,6 +5,7 @@
 #include <sys/error.h>
 #include <sys/fs.h>
 #include <sys/dev.h>
+#include <fcntl.h>
 
 #define TARFS_BLOCK_SIZE	512
 
@@ -40,6 +41,16 @@ static uint64_t get_size(const char *str)
 static inline struct posix_header_ustar *tarfs_next_header(void *ptr, size_t size)
 {
 	return ptr + ((size + TARFS_BLOCK_SIZE - 1)/TARFS_BLOCK_SIZE + 1) * TARFS_BLOCK_SIZE;
+}
+
+/* forward header to next one, mainly used for getdirents, return NULL when last one met */
+static inline struct posix_header_ustar *tarfs_header_walk(struct posix_header_ustar *hdr)
+{
+	uint64_t size = get_size(hdr->size);
+	struct posix_header_ustar *new = (void *)hdr + ((size + TARFS_BLOCK_SIZE - 1)/TARFS_BLOCK_SIZE + 1) * TARFS_BLOCK_SIZE;
+	if (new->name[0] == '\0')
+		return NULL;
+	return new;
 }
 
 #if DEBUG_TARFS
@@ -229,6 +240,51 @@ static size_t tarfs_write(struct inode *inode, void *src, off_t off, size_t n)
 	return 0;
 }
 
+static int tarfs_is_abprefix(const char *pre, const char *s)
+{
+	int i = 0;
+	while (pre[i] != '\0' && s[i] != '\0' && pre[i] == s[i])
+		i += 1;
+	return pre[i] == '\0' && s[i] != '\0';
+}
+
+static int tarfs_getdirents(struct inode *inode, void *buf, int offset, int count)
+{
+	struct dirent *dirents = (struct dirent *)buf;
+	TAR_FILE *fp = (TAR_FILE *)inode->priv_data;
+	struct posix_header_ustar *hdr, *hdr_tmp;
+	int i;
+	size_t len;
+	if (inode->p_inode.type != IT_DIR) {
+		tarfs_error("Getting dirents on non-dir\n");
+		return 0;
+	}
+	if (count <= 0)
+		return 0;
+
+	hdr = fp->_header;
+	len = strlen(hdr->name);
+	hdr_tmp = (struct posix_header_ustar *)&_binary_tarfs_start;
+	i = 0;
+
+	for ( ; hdr_tmp != NULL; hdr_tmp = tarfs_header_walk(hdr_tmp)) {
+		if (!tarfs_is_abprefix(hdr->name, hdr_tmp->name))
+			continue;
+
+		if (offset <= 0 && i < count) {
+			strlcpy(dirents[i].name, hdr_tmp->name+len, DIRSIZ);
+			dirents[i].inum = 0;
+			i++;
+		}
+		if (i >= count)
+			return i;
+		if (offset > 0)
+			offset -= 1;
+	}
+
+	return i;
+}
+
 static void tarfs_close(struct inode *inode)
 {
 	TAR_FILE *fp = (TAR_FILE *)inode->priv_data;
@@ -240,6 +296,7 @@ static struct fs_operations tarfs_ops = {
 	.path_lookup	= tarfs_path_lookup,
 	.read			= tarfs_read,
 	.write			= tarfs_write,
+	.getdirents		= tarfs_getdirents,
 	.close			= tarfs_close,
 };
 

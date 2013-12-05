@@ -3,6 +3,7 @@
 
 #include <defs.h>
 #include <sys/k_stdio.h>
+#include <fcntl.h>
 
 /* MAX length of a name in dirent including '\0'
  * (which make sure the dirent is 16 bytes */
@@ -112,6 +113,8 @@ struct inode *path_lookup(struct inode *parent, const char *path);
 int fd_open(const char *pathname, int flags, mode_t mode);
 
 int fd_close(int fd);
+
+int fd_getdents(int fd, struct dirent *dirp, int count);
 
 extern struct file files[];
 extern struct inode inodes[];

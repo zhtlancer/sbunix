@@ -136,7 +136,8 @@ uint64_t sys_lseek(struct pt_regs *regs)
 
 uint64_t sys_getdents(struct pt_regs *regs)
 {
-	return 0;
+	regs->rax = fd_getdents(regs->rdi, (struct dirent *)regs->rsi, regs->rdx);
+	return regs->rax;
 }
 
 uint64_t sys_mmap(struct pt_regs *regs)

@@ -116,7 +116,7 @@ size_t write(int fd, const void *buf, size_t nbyte);
 
 off_t lseek(int fd, off_t offset, int whence);
 
-int getdents(unsigned int fd, struct dirent *dirp, unsigned int count);
+int getdents(int fd, struct dirent *dirp, int count);
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
 

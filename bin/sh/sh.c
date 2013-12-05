@@ -34,12 +34,13 @@ char cmd_buf_out[CMD_BUF_SIZE];
 static int builtin_help(int argc, char **argv);
 static int builtin_exit(int argc, char **argv);
 static int builtin_cd(int argc, char **argv);
+static int builtin_ulimit(int argc, char **argv);
 
 static struct command builtin_cmd[] = {
 	{ "help", "Display this this list of commands", builtin_help },
 	{ "exit", "Exit shell", builtin_exit },
 	{ "cd", "Change directory", builtin_cd },
-	{ "ulimit", "Check user limit", builtin_cd },
+	{ "ulimit", "Check user limit", builtin_ulimit },
 };
 
 #define N_BUILTIN_CMD (sizeof(builtin_cmd) / sizeof(struct command))
@@ -166,6 +167,21 @@ static int builtin_cd(int argc, char **argv)
 	}
 
 	return chdir(argv[1]);
+}
+
+static int builtin_ulimit(int argc, char **argv)
+{
+	uint64_t buf[5];
+	int rval = ulimit(buf, 5);
+	
+	if (rval < 0)
+		return rval;
+
+	printf("Stack limit: 0x%x\n", buf[0]);
+	printf("Brk limit: 0x%x\n", buf[1]);
+	printf("Opened file limit: 0x%x\n", buf[2]);
+
+	return 0;
 }
 
 int main(int argc, char *argv[], char *envp[])

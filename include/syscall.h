@@ -128,5 +128,7 @@ int chdir(const char *path);
 
 int ps(void *buf, int count);
 
+int ulimit(uint64_t *buf, int count);
+
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

@@ -92,6 +92,15 @@ static int run_builtin_cmd(int argc, char *argv[])
 /* run external command */
 static int run_ext_cmd(int bg, int argc, char *argv[])
 {
+	int i;
+	int len;
+
+	for (i = 0; i < N_PATH; i++) {
+		len = strlcpy(cmd_buf_in, PATH[i], CMD_BUF_SIZE);
+		cmd_buf_in[len++] = '/';
+		strlcpy(cmd_buf_in+len, argv[0], CMD_BUF_SIZE-len);
+		execve(cmd_buf_in, argv, envp);
+	}
 	return 0;
 }
 

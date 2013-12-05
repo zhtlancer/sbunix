@@ -31,12 +31,13 @@ void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 	/* Non-existing mapping */
 	if (!(ec & PF_EC_P)) {
 		if ((cr2 < USTACK_TOP) && (cr2 >= USTACK_BOTTOM)) {
-			pf_db("Allocate memory for user stack region (%p)\n", cr2);
+			pf_error("Allocate memory for user stack region (%p)\n", cr2);
+			map_page_self(PGROUNDDOWN(cr2), 1, 0, PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
 			return;
 			/* TODO: grow the user stack? */
 		} else if (current != NULL) {
 			if ((cr2 >= current->mm->brk_start) && (cr2 < current->mm->brk_end)) {
-				pf_db("Allocate memory for brk region (%p)\n", cr2);
+				pf_error("Allocate memory for brk region (%p)\n", cr2);
 				map_page_self(PGROUNDDOWN(cr2), 1, 0, PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
 				return;
 			}

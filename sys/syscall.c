@@ -181,6 +181,25 @@ uint64_t sys_ps(struct pt_regs *regs)
 	return regs->rax;
 }
 
+/* first one is stack limit, second is brk limit
+ * third is file number limit
+ */
+uint64_t sys_ulimit(struct pt_regs *regs)
+{
+	uint64_t *ptr = (uint64_t *)regs->rdi;
+	int count = (int)regs->rsi;
+	int i = 0;
+
+	if (count < 3)
+		return regs->rax = -1;
+
+	ptr[i++] = USTACK_LIMIT;
+	ptr[i++] = UBRK_LIMIT;
+	ptr[i++] = NFILE_PER_PROC;
+
+	return regs->rax = i;
+}
+
 
 /*
  * a1: rdi, a2: rsi, a3: rdx, a4: r8, a5: r9, a6: r12
@@ -230,6 +249,8 @@ uint64_t syscall_common(struct pt_regs *regs)
 		return sys_chdir(regs);
 	case SYS_ps:
 		return sys_ps(regs);
+	case SYS_ulimit:
+		return sys_ulimit(regs);
 	default:
 		syscall_error("Undefined syscall number (0x%x)\n", syscall_no);
 		break;

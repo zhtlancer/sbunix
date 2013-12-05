@@ -39,6 +39,7 @@ static struct command builtin_cmd[] = {
 	{ "help", "Display this this list of commands", builtin_help },
 	{ "exit", "Exit shell", builtin_exit },
 	{ "cd", "Change directory", builtin_cd },
+	{ "ulimit", "Check user limit", builtin_cd },
 };
 
 #define N_BUILTIN_CMD (sizeof(builtin_cmd) / sizeof(struct command))

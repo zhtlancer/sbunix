@@ -23,6 +23,7 @@
 #define SYS_fchdir		20
 #define SYS_getdirents	21
 #define SYS_ps			22
+#define SYS_ulimit		23
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

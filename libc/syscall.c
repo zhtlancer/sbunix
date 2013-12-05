@@ -95,4 +95,9 @@ int ps(void *buf, int count)
 {
 	return __syscall2(SYS_ps, (uint64_t)buf, count);
 }
+
+int ulimit(uint64_t *buf, int count)
+{
+	return __syscall1(SYS_ulimit, (uint64_t)buf, count);
+}
 /* vim: set ts=4 sw=0 tw=0 noet : */

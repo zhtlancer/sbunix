@@ -96,15 +96,15 @@ static int run_ext_cmd(int bg, int argc, char *argv[])
 	int len;
 
 	for (i = 0; i < N_PATH; i++) {
-		/*len = strlcpy(cmd_buf_in, PATH[i], CMD_BUF_SIZE);*/
-		/*cmd_buf_in[len++] = '/';*/
-		/*strlcpy(cmd_buf_in+len, argv[0], CMD_BUF_SIZE-len);*/
-		/*execve(cmd_buf_in, argv, envp);*/
+		len = strlcpy(cmd_buf_in, PATH[i], CMD_BUF_SIZE);
+		cmd_buf_in[len++] = '/';
+		strlcpy(cmd_buf_in+len, argv[0], CMD_BUF_SIZE-len);
+		execve(cmd_buf_in, argv, envp);
 	}
-	strlcpy(cmd_buf_in, argv[0], CMD_BUF_SIZE);
-	len = open(cmd_buf_in, 0, 0);
-	printf("FD: %d\n", len);
-	close(len);
+	/*strlcpy(cmd_buf_in, argv[0], CMD_BUF_SIZE);*/
+	/*len = open(cmd_buf_in, 0, 0);*/
+	/*printf("FD: %d\n", len);*/
+	/*close(len);*/
 	return 0;
 }
 

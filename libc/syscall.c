@@ -66,7 +66,7 @@ off_t lseek(int fd, off_t offset, int whence)
 	return __syscall3(SYS_lseek, fd, offset, whence);
 }
 
-int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
+int getdents(int fd, struct dirent *dirp, int count)
 {
 	return __syscall3(SYS_getdents, fd, (uint64_t)dirp, count);
 }

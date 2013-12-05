@@ -10,6 +10,10 @@
 #define O_APPEND	00002000
 #define O_DIRECTORY	00200000	/* must be a directory */
 
+#define O_SEEK_SET    1
+#define O_SEEK_CUR    2
+#define O_SEEK_END    3
+
 #define DIRSIZ	12
 
 struct dirent {

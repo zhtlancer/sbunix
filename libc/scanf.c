@@ -18,9 +18,58 @@ int gets_l(char *buf, int size)
 	return rval;
 }
 
+
+int
+cstr2i
+(
+	const char *cstr
+)
+{
+	int i=0;
+	int neg=0;
+	int cnt=0;
+
+	if ( cstr[i] == '\0' )
+		return 0;
+	
+	if ( cstr[i] == '-' ) {
+		neg = 1;
+		i++;
+	}
+
+ 	for (;cstr[i] != '\0'; i++ )
+		cnt = (cnt*10)+(cstr[i]-'0');
+	
+	if ( neg )
+		cnt = 0 - cnt;	
+
+	return cnt;
+
+} /* cstr2i() */
+
+
+
 static int vfdscanf(int fd, const char *fmt, va_list ap)
 {
-	gets_l(buf, BUF_SIZE);
+	char c 			= fmt[1];
+	char *str 		= NULL;
+	int	 *num	 	= NULL;
+	int rval = 0;
+	int i;
+
+	if ( c == 'd' ) {
+		num		= (int *)va_arg(ap, int	 *);
+		rval 	= gets_l(buf, BUF_SIZE);
+		*num	= cstr2i( buf );
+	}
+	else if ( c == 's' ) {
+		str		= (char *)va_arg(ap, char *);
+		rval 	= gets_l(buf, BUF_SIZE);
+		for ( i=0; i<rval; i++ )
+			str[i] = buf[i];
+		str[i] = '\0';
+	}
+
 	return 0;
 }
 

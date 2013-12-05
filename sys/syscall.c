@@ -123,15 +123,20 @@ uint64_t sys_read(struct pt_regs *regs)
 uint64_t sys_write(struct pt_regs *regs)
 {
 	struct file *file = current->files[regs->rdi];
-	if (!file->writeable || file->f_ops->write == NULL)
+	if (!file->writeable || file->f_ops->write == NULL) {
 		return 0;
+	}
 	regs->rax = file->f_ops->write(file, (void *)regs->rsi, regs->rdx);
 	return regs->rax;
 }
 
 uint64_t sys_lseek(struct pt_regs *regs)
 {
-	return 0;
+	struct file *file = current->files[regs->rdi];
+	if (file->f_ops->seek == NULL)
+		return 0;
+	regs->rax = file->f_ops->seek( file, (off_t)(regs->rsi), (int)(regs->rdx) );
+	return regs->rax;
 }
 
 uint64_t sys_getdents(struct pt_regs *regs)

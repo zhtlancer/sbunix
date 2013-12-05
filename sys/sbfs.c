@@ -1,4 +1,3 @@
-
 #include <defs.h>
 #include <sys/mm.h>
 #include <sys/string.h>
@@ -19,7 +18,7 @@
 #define sbfs_db(fmt, ...)
 #endif
 
-#define TEST_SBFS 1
+#define TEST_SBFS 0
 
 volatile uint32_t *sbfs_buf;
 sbfs_super_block_t sbfs_superblk;
@@ -206,7 +205,6 @@ static struct inode *sbfs_path_lookup(struct inode *parent, const char *path)
 
 		cnt=-1;
 		for ( k=0; k<pinode.size; k++ ) {
-			k_printf( 0, "SBFS: path_lookup name=%s, compare to=%s, len=%d\n", dentry_list[k].name, path_tmp, i );
 			if ( !strncmp( dentry_list[k].name, path_tmp, i ) ) {
 				cnt	=	k;
 				break;
@@ -272,6 +270,7 @@ static size_t sbfs_read(struct inode *inode, void *dst, off_t off, size_t n)
 	idx = 0;
 	do {
 
+
 		sect_nr		=	off_tmp/AHCI_SECT_SIZE;
 
 		if ( sect_nr < NDIRECT ) {
@@ -295,7 +294,7 @@ static size_t sbfs_read(struct inode *inode, void *dst, off_t off, size_t n)
 		off_tmp 	+= size_sect;
 		size_tmp	-= size_sect;
 
-	} while ( pinode.size > off_tmp );
+	} while ( (pinode.size > off_tmp) && (size_tmp > 0) );
 
 
 	return (size_t)idx;
@@ -356,7 +355,7 @@ static size_t sbfs_write(struct inode *inode, void *src, off_t off, size_t n)
 		off_tmp 	+= size_sect;
 		size_tmp	-= size_sect;
 
-	} while ( pinode.size > off_tmp );
+	} while ( (pinode.size > off_tmp) && (size_tmp > 0) );
 
 
 	return (size_t)idx;
@@ -736,13 +735,14 @@ int sbfs_init(void)
 	struct p_inode *pinode 	= (struct p_inode *)(sbfs_buf);
 	struct inode *inode;
 
-	sbfs_newfs();
+	//sbfs_newfs();
 
 	sbfs_dev->readsect( sbfs_dev, (void *)sbfs_buf, 0 );
 	sbfs_dev->super_block = &sbfs_superblk;
 	sbfs_superblk.sect_nr_bm		= sbfs_buf[0];
 	sbfs_superblk.sect_nr_inode		= sbfs_buf[1];
 	sbfs_superblk.sect_nr_data		= sbfs_buf[2];
+	k_printf( 0, "SBFS: %d, %d, %d\n", sbfs_superblk.sect_nr_bm, sbfs_superblk.sect_nr_inode, sbfs_superblk.sect_nr_data );
 
 	/* get p_inode 0 and set to inode */
 	sbfs_dev->readsect( sbfs_dev, (void *)sbfs_buf, SBFS_SECT_INODE );
@@ -750,6 +750,7 @@ int sbfs_init(void)
 	inode->fs_ops 		= &sbfs_ops;
 	inode->priv_data 	= NULL;
 	inode->p_inode 		= pinode[0];
+	k_printf( 0, "SBFS: %d, %d, %d, %d\n", (inode->p_inode).type, (inode->p_inode).minor, (inode->p_inode).size, (inode->p_inode).addrs[0] );
 
 #if TEST_SBFS
 	struct inode *inode2;
@@ -791,40 +792,45 @@ int sbfs_init(void)
 	for ( i=0; i<(inode2->p_inode).size; i++ )
 		k_printf( 0, "SBFS: 3 rootdir file %d: pinode=%d, name=%s\n", i, dirs[i].pinode_nr, dirs[i].name );
 
-	//k_printf( 0, "SBFS: created_file=%d, size=%d\n", (inode_tmp->p_inode).minor, (inode_tmp->p_inode).size );
-	//for ( i=0; i<NDIRECT; i++ )
-	//	k_printf( 0, "SBFS: created file sect=%d = %d\n", i, (inode_tmp->p_inode).addrs[i] );
-	//sbfs_dev->readsect( sbfs_dev, (void *)sbfs_buf, (inode_tmp->p_inode).addrs[NDIRECT] );
-	//for ( i=0; i<4; i++ )
-	//	k_printf( 0, "SBFS: created file sect=%d = %d\n", i+NDIRECT, sbfs_buf[i] );
+	k_printf( 0, "SBFS: created_file=%d, size=%d\n", (inode_tmp->p_inode).minor, (inode_tmp->p_inode).size );
+	for ( i=0; i<NDIRECT; i++ )
+		k_printf( 0, "SBFS: created file sect=%d = %d\n", i, (inode_tmp->p_inode).addrs[i] );
+	sbfs_dev->readsect( sbfs_dev, (void *)sbfs_buf, (inode_tmp->p_inode).addrs[NDIRECT] );
+	for ( i=0; i<4; i++ )
+		k_printf( 0, "SBFS: created file sect=%d = %d\n", i+NDIRECT, sbfs_buf[i] );
 
 	inode2 = sbfs_path_lookup( inode, "test_dir2/test_file" );
 	k_printf( 0, "SBFS: path_lookup file pinode_nr=%d, pinode_addrs0=%d\n", (inode2->p_inode).minor, (inode2->p_inode).addrs[0] );
 
-	//uint08_t *write_buf = (uint08_t *)kmalloc( 8192, PG_SUP);
-	//intj j;
-	//for ( i=0; i<16; i++ )
-	//	for ( j=0; j<512; j++ )	
-	//		write_buf[(i*512)+j] = i;
+	uint08_t *write_buf = (uint08_t *)kmalloc( 8192, PG_SUP);
+	int j;
+	for ( i=0; i<16; i++ )
+		for ( j=0; j<512; j++ )	
+			write_buf[(i*512)+j] = i;
 
-	//sbfs_write( inode_tmp, (void *)write_buf, 0, 8192 );
-	//
-	//for ( i=0; i<16; i++ )
-	//	for ( j=0; j<512; j++ )	
-	//		write_buf[(i*512)+j] = 0;
+	sbfs_write( inode_tmp, (void *)write_buf, 0, 8192 );
+	
+	for ( i=0; i<16; i++ )
+		for ( j=0; j<512; j++ )	
+			write_buf[(i*512)+j] = 0;
 
-	//k_printf( 0, "SBFS: print after clean \n" );
-	//for ( i=0; i<16; i++ )
-	//	k_printf( 0, "%d ", write_buf[512*i] );
-	//k_printf( 0, "\n" );
-	//sbfs_read( inode_tmp, (void *)write_buf, 0, 8192 );
-	//k_printf( 0, "SBFS: print after read  \n");
-	//for ( i=0; i<16; i++ )
-	//	k_printf( 0, "%d ", write_buf[512*i] );
-	//k_printf( 0, "\n" );
+	k_printf( 0, "SBFS: print after clean \n" );
+	for ( i=0; i<16; i++ )
+		k_printf( 0, "%d ", write_buf[512*i] );
+	k_printf( 0, "\n" );
+	sbfs_read( inode_tmp, (void *)write_buf, 0, 8192 );
+	k_printf( 0, "SBFS: print after read  \n");
+	for ( i=0; i<16; i++ )
+		k_printf( 0, "%d ", write_buf[512*i] );
+	k_printf( 0, "\n" );
+
+	for ( i=0; i<16; i++ )
+		for ( j=0; j<512; j++ )	
+			write_buf[(i*512)+j] = (uint32_t)((i*512)+j);
+	sbfs_write( inode_tmp, (void *)write_buf, 0, 8192 );
 
 
-	//kfree( write_buf );
+	kfree( write_buf );
 #endif
 	
 

@@ -259,13 +259,14 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 	if (offset + length > inode->p_inode.size)
 		return NULL;
 
+	addr = (void *)PGROUNDDOWN((uint64_t)addr);
+
 	if ((vma_tmp = vma_alloc(current->mm->mmap, (uint64_t)addr, length)) == NULL)
 		return NULL;
 
 	for (va = vma_tmp->vm_start; va < vma_tmp->vm_end; va += __PAGE_SIZE) {
 		map_page_self(va, 1, 0, PG_USR, 0, 0, 0, PGT_USR | PGT_RW);
-	}
-	vma_tmp->file = (addr_t)inode;
+	} vma_tmp->file = (addr_t)inode;
 	vma_tmp->ofs = offset;
 
 	inode->fs_ops->read(inode, (void *)vma_tmp->vm_start, offset, length);
@@ -277,6 +278,29 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 
 int munmap(void *addr, size_t length)
 {
+	vma_t *vma_tmp;
+	pgt_t *pgt_tmp;
+	uint64_t va;
+	struct inode *inode;
+
+	vma_tmp = vma_find(current->mm->mmap, addr);
+	if (vma_tmp == NULL)
+		return -1;
+
+	inode = (struct inode *)vma_tmp->file;
+	for (va = vma_tmp->vm_start; va < vma_tmp->vm_end; va += __PAGE_SIZE) {
+		pgt_tmp = get_pgt_entry_lv4_self(va);
+		if (pgt_tmp == NULL)
+			return -1;
+		if (pgt_tmp->flag & PGT_D) {
+			/* dirty page, write-back */
+			size_t size = vma_tmp->vm_end - va;
+			size = size > __PAGE_SIZE ? __PAGE_SIZE : size;
+			inode->fs_ops->write(inode, (void *)va, vma_tmp->ofs+(va - vma_tmp->vm_start), size);
+		}
+	}
+	
+	vma_delete(vma_tmp);
 	return 0;
 }
 

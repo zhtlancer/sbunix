@@ -106,6 +106,21 @@ vma_t *vma_alloc(vma_t *vma_head, uint64_t start, uint64_t length)
 	return vma_tmp;
 }
 
+void vma_delete(vma_t *vma)
+{
+	vma_t *prev, *next;
+
+	if (vma->prev == vma)
+		return;
+	prev = vma->prev;
+	next = vma->next;
+
+	prev->next = next;
+	next->prev = prev;
+
+	/* FIXME: reclaim the memory of vma) */
+}
+
 void vma_insert(vma_t *vma_head, vma_t *vma_new)
 {
 	vma_new->next = vma_head;

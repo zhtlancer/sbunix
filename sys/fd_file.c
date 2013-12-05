@@ -52,7 +52,7 @@ void put_file(struct file *file)
 	}
 	file->ref -= 1;
 	if (file->ref == 0) {
-		if (file->f_ops->close != NULL)
+		if (file->f_ops && file->f_ops->close != NULL)
 			file->f_ops->close(file); /* don't operate on inode here */
 
 		if (file->inode) {
@@ -107,13 +107,15 @@ int fd_open(const char *pathname, int flags, mode_t mode)
 	file = get_file(NULL);
 	if (file == NULL) {
 		fs_error("Failed to allocate file struct\n");
+		fd = -1;
 		return fd;
 	}
 
 	inode = path_lookup(current->cwd, pathname);
 	if (inode == NULL) {
-		fs_db("File %s not found\n", pathname);
-		goto free_file;
+		fs_db("File '%s' not found\n", pathname);
+		fd = -1;
+		goto L_free_file;
 	}
 
 	file->inode = inode;
@@ -121,7 +123,7 @@ int fd_open(const char *pathname, int flags, mode_t mode)
 	if ((flags & O_DIRECTORY) && (inode->p_inode.type != IT_DIR)) {
 		fs_error("Target is not directory\n");
 		fd = -1;
-		goto free_file;
+		goto L_free_file;
 	}
 
 	if ((flags & O_RDWR) && (inode->dev_num == DEV_DISK))
@@ -136,7 +138,7 @@ int fd_open(const char *pathname, int flags, mode_t mode)
 
 	return fd;
 
-free_file:
+L_free_file:
 	put_file(file);
 	return fd;
 }
@@ -145,8 +147,8 @@ int fd_close(int fd)
 {
 	struct file *file;
 	int rval = 0;
-	
-	if (fd >= NFILE_PER_PROC)
+
+	if (fd >= NFILE_PER_PROC || fd < 0)
 		return -1;
 	if (current->files[fd] == NULL)
 		return -1;

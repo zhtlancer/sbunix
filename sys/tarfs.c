@@ -8,6 +8,9 @@
 
 #define TARFS_BLOCK_SIZE	512
 
+#define tarfs_error(fmt, ...)	\
+	k_printf(1, "<TARFS> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
+
 #if DEBUG_TARFS
 #define tarfs_db(fmt, ...)	\
 	k_printf(1, "<TARFS DEBUG> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
@@ -156,14 +159,40 @@ static void tarfs_fclose(TAR_FILE *fp)
 static struct inode *tarfs_path_lookup(struct inode *parent, const char *path)
 {
 	char full_path[TARFS_NAME_MAX];
-	size_t i, j;
+	int i, j;
 	TAR_FILE *tmp;
 	TAR_FILE *fp = (TAR_FILE *)parent->priv_data;
 	struct inode *inode;
+	if (parent->p_inode.type != IT_DIR) {
+		tarfs_error("Not a dir inode\n");
+		return NULL;
+	}
+
 	i = strlcpy(full_path, fp->_header->name, TARFS_NAME_MAX);
-	for (j = 0; path[j] != '\0' && path[j] == '/'; j++)
-		;
-	strlcpy(full_path+i, path+j, TARFS_NAME_MAX);
+	j = 0;
+	while (1) {
+		while (path[j] != '\0' && path[j] == '/')
+			j++;
+		if (path[j] == '\0')
+			break;
+		if (path[j] == '.' && (path[j+1] == '/' || path[j+1] == '\0'))
+			j += 1;
+		else if (path[j] == '.' && path[j+1] == '.'
+				&& (path[j+2] == '/' || path[j+2] == '\0')) {
+			j += 2;
+			i -= 1;
+			while ((--i >= 0) && full_path[i] != '/')
+				;
+			if (i < 0)
+				return path_lookup(rootfs, path+j);
+		} else {
+			while (path[j] != '\0' && path[j] != '/')
+				full_path[i++] = path[j++];
+			if (path[j] == '/')
+				full_path[i++] = path[j++];
+		}
+	}
+	full_path[i] = '\0';
 
 	tmp = tarfs_fopen(full_path);
 	if (tmp == NULL)
@@ -227,6 +256,8 @@ int tarfs_init()
 	fp = kmalloc(sizeof(TAR_FILE), PG_SUP);
 	/* point to the last block */
 	fp->_header = (struct posix_header_ustar *)(&_binary_tarfs_end - TARFS_BLOCK_SIZE);
+	inode->p_inode.type = IT_DIR;
+	inode->p_inode.size = 0;
 	inode->priv_data = (TAR_FILE *)fp;
 	inode->fs_ops = &tarfs_ops;
 

@@ -14,13 +14,14 @@ int main(int argc, char *argv[], char *envp[])
 	test = printf("%s", TEST);
 	int i;
 	int fd;
-	char buf[512];
+	unsigned char buf[512];
 
 	for (i = 0; i < argc; i++)
 		printf("ARGV[%d]: %s\n", i, argv[i]);
 	for (i = 0; envp[i] != NULL; i++)
 		printf("ENVP[%d]: %s\n", i, envp[i]);
 
+	/*fd = open("/mnt/test_dir2/test_file", 0, 0);*/
 	fd = open("/bin/hello", 0, 0);
 
 	if (fd < 0) {

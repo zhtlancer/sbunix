@@ -3,6 +3,7 @@
 
 #include <defs.h>
 #include <syscall_no.h>
+#include <fcntl.h>
 
 #define SYSCALL_PROTO(n) static __inline uint64_t __syscall##n
 

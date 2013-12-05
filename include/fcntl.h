@@ -12,4 +12,11 @@
 #define SEEK_CUR    2
 #define SEEK_END    3
 
+#define DIRSIZ	12
+struct dirent {
+	uint32_t inum;
+	char name[DIRSIZ];
+};
+
 #endif
+/* vim: set ts=4 sw=0 tw=0 noet : */

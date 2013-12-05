@@ -23,7 +23,7 @@ int dev_init(void)
 	/* Initialize AHCI device */
 	dev = &devs[DEV_DISK];
 	dev->type 			= DEV_TYPE_BLOCK;
-	dev->super_block 	= NULL; //FIXME
+	dev->super_block 	= NULL; // will be set in sbfs_init()
 	dev->seek			= NULL;
 	dev->read			= NULL;
 	dev->write			= NULL;

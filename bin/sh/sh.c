@@ -92,7 +92,6 @@ static int run_ext_cmd(int bg, int argc, char *argv[])
 
 static int run_cmd(char *s, int len)
 {
-	int i;
 	int bg = 0;
 	int argc;
 	char *argv[MAXARGV_FIELD];

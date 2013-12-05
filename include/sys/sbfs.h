@@ -39,7 +39,7 @@ struct sbfs_super_block {
 	uint32_t	sect_nr_inode	;
 	uint32_t	sect_nr_data	;
 }__attribute__((packed));
-typedef volatile struct sbfs_super_block sbfs_super_block_t;
+typedef struct sbfs_super_block sbfs_super_block_t;
 
 struct sbfs_dentry { /* 16 bytes */
 	uint32_t	pinode_nr				;

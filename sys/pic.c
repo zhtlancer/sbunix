@@ -80,11 +80,12 @@ uint64_t current_irq;
 void isr_common(uint64_t irq, uint64_t error_code, struct pt_regs *regs)
 {
 	if (current == NULL) {
+		regs = NULL;
 		k_printf(0, "Interrupt %d occurs at boot time\n", irq);
-		panic("Interrupt too early!\n");
+	} else {
+		current->tf = regs;
+		current_irq = irq;
 	}
-	current->tf = regs;
-	current_irq = irq;
 
 	switch (irq) {
 	case EXP_PGF:
@@ -112,14 +113,14 @@ int idt_setup(void)
 	uint64_t isr_addr;
 
 	/* Stack-segment Fault */
-    pit_int_gate = (void *)(&idt[2*14]);
-    isr_addr = (uint64_t)(&x86_64_asm_irq_12);
-    pit_int_gate->offsetLo  = (uint16_t)(isr_addr&0xFFFF); 
-    pit_int_gate->segSel    = (uint16_t)0x8; 
-    pit_int_gate->attr      = (uint16_t)(TYPE_IG64|DESC_P|DESC_DPL0); 
-    pit_int_gate->offsetMi  = (uint16_t)((isr_addr>>16)&0xFFFF); 
-    pit_int_gate->offsetHi  = (uint32_t)((isr_addr>>32)&0xFFFFFFFF); 
-    pit_int_gate->resZero   = (uint32_t)0;
+    //pit_int_gate = (void *)(&idt[2*14]);
+    //isr_addr = (uint64_t)(&x86_64_asm_irq_12);
+    //pit_int_gate->offsetLo  = (uint16_t)(isr_addr&0xFFFF); 
+    //pit_int_gate->segSel    = (uint16_t)0x8; 
+    //pit_int_gate->attr      = (uint16_t)(TYPE_IG64|DESC_P|DESC_DPL0); 
+    //pit_int_gate->offsetMi  = (uint16_t)((isr_addr>>16)&0xFFFF); 
+    //pit_int_gate->offsetHi  = (uint32_t)((isr_addr>>32)&0xFFFFFFFF); 
+    //pit_int_gate->resZero   = (uint32_t)0;
 
 	/* Page Fault */
     pit_int_gate = (void *)(&idt[2*14]);

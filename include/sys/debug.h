@@ -29,7 +29,7 @@
 /*
  * DEBUG switch for page-fault handler
  */
-#define DEBUG_PF 1
+#define DEBUG_PF 0
 
 /*
 <<<<<<< HEAD

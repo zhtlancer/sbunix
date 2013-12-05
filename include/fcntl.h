@@ -1,6 +1,8 @@
 #ifndef _FCNTL_H
 #define _FCNTL_H
 
+#include <defs.h>
+
 #define O_RDONLY	00000000
 #define O_WRONLY	00000001
 #define O_RDWR		00000002
@@ -13,6 +15,7 @@
 #define O_SEEK_END    3
 
 #define DIRSIZ	12
+
 struct dirent {
 	uint32_t inum;
 	char name[DIRSIZ];

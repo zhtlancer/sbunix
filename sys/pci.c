@@ -180,6 +180,9 @@ pci_init()
 
                     pci_dev_type0[idx].rsvd0        = 0x0;
                     pci_dev_type0[idx].rsvd1        = 0x0;
+
+                    if ( (pci_dev_type0[idx].cls == 0x01) && (pci_dev_type0[idx].cls_sub == 0x06) )
+                        ahci_bar = pci_dev_type0[idx].bar5;
      
                     //vid         = pci_config_read_16( i, j, 0, PCI_CFG_REG_VID );
                     //class       = pci_config_read_16( i, j, 0, PCI_CFG_REG_CLS     );

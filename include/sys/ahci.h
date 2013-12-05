@@ -48,7 +48,6 @@
  */
 
 #define AHCI_DEFAULT_PORT       0
-#define AHCI_DEV0_PA            0xFEBF0000
 #define AHCI_DISK_SIZE          16*1024*1024
 #define AHCI_SECT_SIZE          512
 #define AHCI_DISK_SECT_NUM      (AHCI_DISK_SIZE/AHCI_SECT_SIZE)
@@ -408,7 +407,7 @@ typedef volatile struct hba_mem hba_mem_t;
  */
 
 extern hba_mem_t *hba_mem_0;
-
+extern uint32_t ahci_bar;
 
 /*-------------------------------------------------------------------------
  * Function

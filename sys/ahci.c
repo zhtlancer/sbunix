@@ -27,7 +27,7 @@
  */
 
 hba_mem_t *hba_mem_0;
-
+uint32_t ahci_bar;
 
 /*-------------------------------------------------------------------------
  * Function
@@ -455,7 +455,7 @@ ahci_init ()
 {
 
     //uint32_t volatile *hba_DW = (uint32_t volatile *)(map_pa_kernel(0xFEBF0000, 0, 0, 0, PGT_SUP | PGT_EXE | PGT_RW ) );
-    hba_mem_0 = (hba_mem_t *)( map_pa_kernel(AHCI_DEV0_PA, 0, 0, 0, PGT_SUP | PGT_EXE | PGT_RW ) );  
+    hba_mem_0 = (hba_mem_t *)( map_pa_kernel(ahci_bar, 0, 0, 0, PGT_SUP | PGT_EXE | PGT_RW ) );  
  
 
 

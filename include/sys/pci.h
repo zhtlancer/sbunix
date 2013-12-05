@@ -109,7 +109,7 @@ typedef struct pci pci_t;
 extern uint32_t pci_dev_nr;
 extern uint32_t pci_dev_type0_nr;
 extern pci_t pci_dev_type0[16];
-
+extern uint32_t ahci_bar;
 
 /*-------------------------------------------------------------------------
  * Function

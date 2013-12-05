@@ -114,7 +114,7 @@ uint64_t sys_close(struct pt_regs *regs)
 uint64_t sys_read(struct pt_regs *regs)
 {
 	struct file *file = current->files[regs->rdi];
-	if (!file->readable || file->f_ops->read == NULL)
+	if (!file->readable || (file->f_ops->read == NULL))
 		return 0;
 	regs->rax = file->f_ops->read(file, (void *)regs->rsi, regs->rdx);
 	return regs->rax;

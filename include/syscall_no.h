@@ -17,7 +17,11 @@
 #define SYS_getdents	14
 #define SYS_mmap		15
 #define SYS_munmap		16
-#define SYS_sbrk		17
+#define SYS_brk			17
+#define SYS_sbrk		18
+#define SYS_chdir		19
+#define SYS_fchdir		20
+#define SYS_getdirents	21
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

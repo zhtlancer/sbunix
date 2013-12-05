@@ -25,7 +25,7 @@ extern struct inode *diskfs;
 struct file_operations {
 	int (*open)(struct inode *inode, struct file *file);
 	void (*close)(struct file *file);
-	size_t (*seek)(struct file *file, off_t offset, int pos);
+	off_t (*seek)(struct file *file, off_t offset, int pos);
 	size_t (*read)(struct file *file, void *buf, size_t nbytes);
 	size_t (*write)(struct file *file, void *buf, size_t nbytes);
 };
@@ -34,7 +34,7 @@ struct file {
 	int ref;
 	uint8_t readable;
 	uint8_t writeable;
-	size_t offset;
+	off_t offset;
 	struct inode *inode;
 
 	struct file_operations *f_ops;

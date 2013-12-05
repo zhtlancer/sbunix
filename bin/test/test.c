@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <syscall.h>
 
 #define TEST "TEST\n"
@@ -12,11 +13,28 @@ int main(int argc, char *argv[], char *envp[])
 	int test;
 	test = printf("%s", TEST);
 	int i;
+	int fd;
+	char buf[512];
 
 	for (i = 0; i < argc; i++)
 		printf("ARGV[%d]: %s\n", i, argv[i]);
 	for (i = 0; envp[i] != NULL; i++)
 		printf("ENVP[%d]: %s\n", i, envp[i]);
+
+	fd = open("/bin/hello", 0, 0);
+
+	if (fd < 0) {
+		printf("Failed to open file\n");
+		exit(-1);
+	} else
+		printf("file opened: %d\n", fd);
+
+	read(fd, buf, 512);
+
+	for (i = 0; i < 512; i++)
+		printf(" %x", buf[i]);
+
+	exit(0);
 
 	while (d);
 

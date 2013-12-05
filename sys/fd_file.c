@@ -2,6 +2,7 @@
 #include <sys/sched.h>
 #include <sys/string.h>
 #include <sys/dev.h>
+#include <fcntl.h>
 
 #define fs_error(fmt, ...)	\
 	k_printf(1, "<FS> [%s (%s:%d)] " fmt, __func__, __FILE__, __LINE__, ## __VA_ARGS__)
@@ -115,16 +116,25 @@ int fd_open(const char *pathname, int flags, mode_t mode)
 		goto free_file;
 	}
 
-	if (inode->dev_num == DEV_DISK)
+	file->inode = inode;
+
+	if ((flags & O_DIRECTORY) && (inode->p_inode.type != IT_DIR)) {
+		fs_error("Target is not directory\n");
+		fd = -1;
+		goto free_file;
+	}
+
+	if ((flags & O_RDWR) && (inode->dev_num == DEV_DISK))
 		file->writeable = 1;
 	else
 		file->writeable = 0;
 	file->readable = 1;
 	file->offset = 0;
-	file->inode = inode;
 	file->f_ops = &regular_fops;
 
 	current->files[fd] = file;
+
+	return fd;
 
 free_file:
 	put_file(file);
@@ -149,22 +159,58 @@ int fd_close(int fd)
 	return rval;
 }
 
-static size_t file_seek(struct file *file, off_t offset, int pos)
+static off_t file_seek(struct file *file, off_t offset, int pos)
 {
-	return 0;
+	struct inode *inode = file->inode;
+
+	if (inode == NULL)
+		return -1;
+
+	switch (pos) {
+	case SEEK_SET:
+		if (offset > inode->p_inode.size) {
+			offset = inode->p_inode.size;
+		}
+		file->offset = offset;
+		return offset;
+	case SEEK_CUR:
+		file->offset += offset;
+		if (file->offset > inode->p_inode.size) {
+			file->offset = inode->p_inode.size;
+		}
+		return file->offset;
+	case SEEK_END:
+		if (offset > inode->p_inode.size) {
+			offset = inode->p_inode.size;
+		}
+		file->offset = inode->p_inode.size - offset;
+		return file->offset;
+	default:
+		fs_error("Invalid whence value (%d)\n", pos);
+		return -1;
+	}
+	return -1;
 }
 
 static size_t file_read(struct file *file, void *buf, size_t nbytes)
 {
-	return 0;
+	struct inode *inode = file->inode;
+	size_t nread;
+	nread = inode->fs_ops->read(inode, buf, file->offset, nbytes);
+	file->offset += nread;
+	return nread;
 }
 
 static size_t file_write(struct file *file, void *buf, size_t nbytes)
 {
-	return 0;
+	struct inode *inode = file->inode;
+	size_t nwrite;
+	nwrite = inode->fs_ops->write(inode, buf, file->offset, nbytes);
+	file->offset += nwrite;
+	return nwrite;
 }
 
-struct file_operations regular_ops = {
+struct file_operations regular_fops = {
 	.seek = file_seek,
 	.read = file_read,
 	.write = file_write,

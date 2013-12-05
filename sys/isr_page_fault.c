@@ -28,21 +28,6 @@ void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 
 	pf_db("Page fault at %p, ec %x\n", cr2, ec);
 
-	/* caused by mem write, COW page? */
-	if (ec & PF_EC_RW) {
-		pgt_t *pgt = get_pgt_entry_lv4_self(cr2);
-		if ((pgt->avl_1 & PGT_AVL_COW) && (pgt->flag & PGT_USR) && !(pgt->flag & PGT_RW)) {
-			page_t *page = get_page_from_pgt(pgt);
-			void *va = get_va_from_page(page);
-			pf_db("COW page met, create new page.\n");
-			remap_page_self(cr2, 1, 0, PG_USR, pgt->nx, pgt->avl_1 & ~PGT_AVL_COW,
-					pgt->avl_2, pgt->flag | PGT_RW);
-			flush_tlb();
-			memcpy((void *)PGROUNDDOWN(cr2), va, __PAGE_SIZE);
-		}
-		return;
-	}
-
 	/* Non-existing mapping */
 	if (!(ec & PF_EC_P)) {
 		if ((cr2 < USTACK_TOP) && (cr2 >= USTACK_BOTTOM)) {
@@ -56,6 +41,21 @@ void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 				return;
 			}
 		}
+	}
+
+	/* caused by mem write, COW page? */
+	if (ec & PF_EC_RW) {
+		pgt_t *pgt = get_pgt_entry_lv4_self(cr2);
+		if ((pgt->avl_1 & PGT_AVL_COW) && (pgt->flag & PGT_USR) && !(pgt->flag & PGT_RW)) {
+			page_t *page = get_page_from_pgt(pgt);
+			void *va = get_va_from_page(page);
+			pf_db("COW page met, create new page.\n");
+			remap_page_self(cr2, 1, 0, PG_USR, pgt->nx, pgt->avl_1 & ~PGT_AVL_COW,
+					pgt->avl_2, pgt->flag | PGT_RW);
+			flush_tlb();
+			memcpy((void *)PGROUNDDOWN(cr2), va, __PAGE_SIZE);
+		}
+		return;
 	}
 
 	if (!(ec & PF_EC_PL)) {

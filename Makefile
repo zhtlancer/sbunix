@@ -76,7 +76,8 @@ submitxxx: clean
 clean:
 	find $(ROOTLIB) $(ROOTBIN) -type f ! -name .empty -print -delete
 	rm -rfv obj kernel $(ROOTBOOT)/kernel/kernel
-	rm -rf *.iso *.img
+	rm -rf *.iso 
+#	rm -rf *.iso *.img
 
 all: $(USER).iso
 new: clean all

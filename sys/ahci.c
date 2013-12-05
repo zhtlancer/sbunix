@@ -18,7 +18,7 @@
 #define ahci_db(fmt, ...)
 #endif
 
-#define TEST_AHCI 1
+#define TEST_AHCI 0
 
 
 /*-------------------------------------------------------------------------
@@ -198,6 +198,7 @@ ahci_read(
     void            *buf
 )
 {
+    //k_printf( 0, "ahci_read: startl:%d, count:%d\n", startl, count );
     int i;
     addr_t  buf_pa = get_pa_from_va( buf );
     port->is = (uint32_t)(-1);      // Clear pending interrupt bits

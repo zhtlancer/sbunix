@@ -8,4 +8,8 @@
 #define O_APPEND	00002000
 #define O_DIRECTORY	00200000	/* must be a directory */
 
+#define SEEK_SET    1
+#define SEEK_CUR    2
+#define SEEK_END    3
+
 #endif

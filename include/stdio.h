@@ -12,6 +12,8 @@ int printf(const char *format, ...);
 int gets_l(char *buf, int size);
 int fdscanf(int fd, const char *format, ...);
 int scanf(const char *format, ...);
+int cstr2i(const char *);
+
 
 #endif
 /* vim: set ts=4 sw=0 tw=0 noet : */

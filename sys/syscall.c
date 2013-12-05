@@ -62,7 +62,7 @@ uint64_t sys_execve(struct pt_regs *regs)
 uint64_t sys_sleep(struct pt_regs *regs)
 {
 	uint64_t tick0 = jiffies;
-	uint64_t tick = jiffies + regs->rdi;
+	uint64_t tick = jiffies + ((regs->rdi)*1000);
 	while (jiffies < tick) {
 		sleep(&jiffies);
 	}

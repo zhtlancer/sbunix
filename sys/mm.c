@@ -646,7 +646,6 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	kvma_end        = page_begin_addr;
 	k_printf( 0, "pg begin addr: %p\n", page_begin_addr);
 
-
     /*---------------------------------------
 	 * initialize default kernel space page tables
      *---------------------------------------
@@ -697,9 +696,20 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 	set_pgt_entry( addr, 0x200000, PGT_P, PGT_EXE,
 			0x0, 0x0, PGT_RW | PGT_SUP | PGT_PS );
 
+	/* set lv3 page table entry: kernel page:2M:0x40000-0x5FFFFF */
+	addr = ( (addr_t)&kernofs | def_pgt_paddr_lv3 ) + (8*  2);
+	set_pgt_entry( addr, 0x400000, PGT_P, PGT_EXE,
+			0x0, 0x0, PGT_RW | PGT_SUP | PGT_PS );
+
+	/* set lv3 page table entry: kernel page:2M:0x60000-0x7FFFFF */
+	addr = ( (addr_t)&kernofs | def_pgt_paddr_lv3 ) + (8*  3);
+	set_pgt_entry( addr, 0x600000, PGT_P, PGT_EXE,
+			0x0, 0x0, PGT_RW | PGT_SUP | PGT_PS );
+
+
 	/* set lv3 page table entry: kernel page table to lv4 */
 	int j = 0;
-	for ( i=2; i<(0x100000/__PAGE_SIZE)-3; ++i, ++j ) {
+	for ( i=4; i<(0x100000/__PAGE_SIZE)-3; ++i, ++j ) {
 		addr = ( (addr_t)&kernofs | def_pgt_paddr_lv3 ) + (8*i);
 		set_pgt_entry( addr, 0x100000+(j*__PAGE_SIZE), PGT_P, PGT_EXE,
 				0x0, 0x0, PGT_RW | PGT_SUP );
@@ -710,7 +720,6 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
 
 
 	k_printf( 0, "After reload CR3\n" );
-
 
     /*---------------------------------------
 	 * initialize page structures
@@ -725,10 +734,10 @@ int mm_init(uint32_t* modulep, void *physbase, void *physfree)
          mark the first 0x300 pages as occupied (by the kernel.) */
    
 	/* init_page( kernel_page_num ); */
-	init_page( 0x300 ); /* FIXME: first 4MB already mapped to kernel */
+	init_page( 0x500 ); /* FIXME: first 8MB already mapped to kernel */
 
     /* set kernel vma FIXME: not used */
-	kvma_end =(addr_t)&kernofs + 0x400000; /* FIXME: first 4MB already mapped to kernel */  
+	kvma_end =(addr_t)&kernofs + 0x800000; /* FIXME: first 8MB already mapped to kernel */  
 	vma_set( &kvma_head, (addr_t)&kernofs, kvma_end,
 			NULL, NULL, 0, 0, 0, 0, 0 );
 

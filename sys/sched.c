@@ -347,6 +347,8 @@ pid_t fork(void)
 	new->tf->rax = 0;
 	current->tf->rax = new->pid;
 
+	new->parent = current;
+
 	new->state = TASK_RUNNABLE;
 	
 	return new->pid;

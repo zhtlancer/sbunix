@@ -93,6 +93,25 @@ static int run_builtin_cmd(int argc, char *argv[])
 	return 0;
 }
 
+static int spawn_wait(const char *cmd, int argc, char *argv[])
+{
+	int pid;
+	int rval;
+
+	pid = fork();
+	if (pid != 0) {
+		/* parent */
+		pid = waitpid(pid, &rval, 0);
+		printf("Command finished with status(%d)\n", rval);
+	} else {
+		rval = execve(cmd, argv, envp);
+		printf("Failed to execute %s, error=%d\n", cmd, rval);
+		exit(rval);
+	}
+
+	return rval;
+}
+
 /* run external command */
 static int run_ext_cmd(int bg, int argc, char *argv[])
 {
@@ -108,8 +127,10 @@ static int run_ext_cmd(int bg, int argc, char *argv[])
 		fd = open(cmd_buf_in, 0, 0);
 		if (fd < 0)
 			continue;
+
 		close(fd);
-		rval = execve(cmd_buf_in, argv, envp);
+		rval = spawn_wait(cmd_buf_in, argc, argv);
+		break;
 	}
 	return rval;
 }

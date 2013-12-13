@@ -51,7 +51,7 @@ static inline int is_space(char ch)
 }
 
 /* parse cmd_buf_in into cmd_buf_out, and record them in argv passed-in */
-static int parse_cmd(char *argv[])
+static int parse_cmd(char *s, char *argv[])
 {
 	int argc = 0;
 	int i, j;
@@ -65,6 +65,8 @@ static int parse_cmd(char *argv[])
 		while (cmd_buf_in[i] != '\0' && !is_space(cmd_buf_in[i]))
 			cmd_buf_out[j++] = cmd_buf_in[i++];
 		cmd_buf_out[j++] = '\0';
+		if (cmd_buf_in[i] == '\0')
+			break;
 	}
 
 	if (argc >= MAXARGS && cmd_buf_in[i] != '\0') {
@@ -93,6 +95,47 @@ static int run_builtin_cmd(int argc, char *argv[])
 	return 0;
 }
 
+#define SPAWN_BUFSZ	200
+static int spawn(const char *path, int argc, char *argv[])
+{
+	int i;
+	int rval = -1;
+	char _buf[SPAWN_BUFSZ];
+	int fd = open(path, 0, 0);
+
+	if (fd < 0)
+		return fd;
+
+	rval = read(fd, _buf, SPAWN_BUFSZ);
+	if (rval <= 0) {
+		goto fail_close;
+	}
+
+	if (rval > 2 && _buf[0] == '#' && _buf[1] == '!') {
+		for (i = 2; i < rval && _buf[i] != '\n'; i++)
+			;
+		if (i <= 2)
+			goto fail_close;
+
+		memmove(_buf, _buf+2, i-2);
+		_buf[i-2] = '\0';
+		argv[1] = (char *)path;
+		argv[0] = _buf;
+		argv[2] = NULL;
+
+		rval = execve(_buf, argv, envp);
+
+		goto fail_close;
+	}
+
+	close(fd);
+	execve(path, argv, envp);
+
+fail_close:
+	close(fd);
+	return rval;
+}
+
 static int spawn_wait(const char *cmd, int argc, char *argv[])
 {
 	int pid;
@@ -104,7 +147,7 @@ static int spawn_wait(const char *cmd, int argc, char *argv[])
 		pid = waitpid(pid, &rval, 0);
 		printf("Command finished with status(%d)\n", rval);
 	} else {
-		rval = execve(cmd, argv, envp);
+		rval = spawn(cmd, argc, argv);
 		printf("Failed to execute %s, error=%d\n", cmd, rval);
 		exit(rval);
 	}
@@ -122,7 +165,7 @@ static int spawn_nowait(const char *cmd, int argc, char *argv[])
 		/* parent */
 		printf("Process %d created in background...\n", pid);
 	} else {
-		rval = execve(cmd, argv, envp);
+		rval = spawn(cmd, argc, argv);
 		printf("Failed to execute %s, error=%d\n", cmd, rval);
 		exit(rval);
 	}
@@ -177,7 +220,10 @@ static int run_cmd(char *s, int len)
 	int argc;
 	char *argv[MAXARGV_FIELD];
 
-	argc = parse_cmd(argv);
+	argc = parse_cmd(s, argv);
+
+	/*for (int i = 0; i < argc; i++)*/
+		/*printf("RUN: %d %s\n", i, argv[i]);*/
 
 	if (argc < 0)
 		return argc;
@@ -241,11 +287,72 @@ static int builtin_ulimit(int argc, char **argv)
 	return 0;
 }
 
+#define GETL_BUFSZ 200
+static char getl_buf[GETL_BUFSZ];
+static int getl_size;
+static int getl_pos;
+
+static int fd_getc(int fd)
+{
+	if (getl_size == 0 || getl_pos >= getl_size) {
+		getl_size = read(fd, getl_buf, GETL_BUFSZ);
+		getl_pos = 0;
+	}
+
+	if (getl_size <= 0)
+		return -1;
+
+	return (int)getl_buf[getl_pos++];
+}
+
+static int fd_getl(int fd, char *buf, int len)
+{
+	int i = 0;
+	int tmp = -1;
+
+	while (i < len && (tmp = fd_getc(fd)) != -1) {
+		if (tmp == '\n')
+			break;
+
+		buf[i++] = (char)tmp;
+	}
+
+	if (i == 0 && tmp == -1)
+		return -1;
+
+	return i;
+}
+
+static int run_shebang(int argc, char *argv[], char *envp[])
+{
+	int rval = -1;
+	int fd;
+
+	fd = open(argv[1], 0, 0);
+
+	while ((rval = fd_getl(fd, cmd_buf_in, 200)) >= 0) {
+		if (rval == 0)
+			continue;
+		if (cmd_buf_in[0] == '#')
+			continue;
+
+		cmd_buf_in[rval] = '\0';
+		/*printf("shebang cmd: %s (%d)\n", cmd_buf_in, rval);*/
+		run_cmd(cmd_buf_in, rval);
+	}
+
+	close(fd);
+	return 0;
+}
+
 int main(int argc, char *argv[], char *envp[])
 {
 	int len;
 	int status;
 	int pid;
+
+	if (argc > 1)
+		return run_shebang(argc, argv, envp);
 
 	printf("\n>> Welcome to sbsh, the shell for SBUNIX\n");
 

@@ -115,7 +115,7 @@ static int spawn_wait(const char *cmd, int argc, char *argv[])
 static int spawn_nowait(const char *cmd, int argc, char *argv[])
 {
 	int pid;
-	int rval;
+	int rval = 0;
 
 	pid = fork();
 	if (pid != 0) {
@@ -137,6 +137,20 @@ static int run_ext_cmd(int bg, int argc, char *argv[])
 	int len;
 	int fd;
 	int rval = -1;
+
+	if (argv[0][0] == '/') {
+		fd = open(cmd_buf_in, 0, 0);
+		if (fd < 0)
+			return fd;
+
+		close(fd);
+		if (bg) {
+			rval = spawn_nowait(cmd_buf_in, argc, argv);
+		} else {
+			rval = spawn_wait(cmd_buf_in, argc, argv);
+		}
+		return rval;
+	}
 
 	for (i = 0; i < N_PATH; i++) {
 		len = strlcpy(cmd_buf_in, PATH[i], CMD_BUF_SIZE);

@@ -214,8 +214,8 @@ mm_struct_new (
     mm_s->data_start    = data_start;
     mm_s->data_end      = data_end  ;
 	mm_s->stack_start	= USTACK_TOP - __PAGE_SIZE;
-	mm_s->brk_start		= data_end;
-	mm_s->brk_end		= data_end;
+	mm_s->brk_start		= data_end + bss_size;
+	mm_s->brk_end		= mm_s->brk_start;
 
     /* setup vma for code */
     vma_tmp             = (vma_t *)get_object( objcache_vma_head );

@@ -16,7 +16,5 @@ int main(int argc, char *argv[], char *envp[])
 	} else {
 		printf("\tI'm parent, child id=%d\n", pid);
 	}
-
-
 }
 /* vim: set ts=4 sw=0 tw=0 noet : */

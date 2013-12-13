@@ -16,19 +16,18 @@ int main()
 	pid_t sh_pid = 0;
 	int status;
 
-	printf("%p\n", argv);
-
 	for ( ; ; ) {
 		pid_t tmp;
 		/* if sh is still alive, continue */
 		if (sh_pid > 0) {
-			if ((tmp = waitpid(sh_pid, &status, WNOHANG)) == 0)
+			if ((tmp = waitpid(-1, &status, WNOHANG)) == 0)
 				continue;
 
 			if (tmp == sh_pid) {
 				printf("[IDLE] sh(%d) exited with status %d\n", sh_pid, status);
 			} else {
-				printf("[IDLE] sh(%d) exited by unknown reason\n", sh_pid);
+				printf("[IDLE] zombie proc (%d) exited with status %d\n", tmp, status);
+				continue;
 			}
 		}
 

@@ -112,6 +112,24 @@ static int spawn_wait(const char *cmd, int argc, char *argv[])
 	return rval;
 }
 
+static int spawn_nowait(const char *cmd, int argc, char *argv[])
+{
+	int pid;
+	int rval;
+
+	pid = fork();
+	if (pid != 0) {
+		/* parent */
+		printf("Process %d created in background...\n", pid);
+	} else {
+		rval = execve(cmd, argv, envp);
+		printf("Failed to execute %s, error=%d\n", cmd, rval);
+		exit(rval);
+	}
+
+	return rval;
+}
+
 /* run external command */
 static int run_ext_cmd(int bg, int argc, char *argv[])
 {
@@ -129,7 +147,11 @@ static int run_ext_cmd(int bg, int argc, char *argv[])
 			continue;
 
 		close(fd);
-		rval = spawn_wait(cmd_buf_in, argc, argv);
+		if (bg) {
+			rval = spawn_nowait(cmd_buf_in, argc, argv);
+		} else {
+			rval = spawn_wait(cmd_buf_in, argc, argv);
+		}
 		break;
 	}
 	return rval;
@@ -153,7 +175,7 @@ static int run_cmd(char *s, int len)
 	/* check if last arg is "&", which indicate background exe */
 	if (strcmp("&", argv[argc-1]) == 0) {
 		bg = 1;
-		argv[argc--] = NULL;
+		argv[--argc] = NULL;
 	}
 
 	return run_ext_cmd(bg, argc, argv);
@@ -208,10 +230,16 @@ static int builtin_ulimit(int argc, char **argv)
 int main(int argc, char *argv[], char *envp[])
 {
 	int len;
+	int status;
+	int pid;
 
 	printf("\n>> Welcome to sbsh, the shell for SBUNIX\n");
 
 	while (1) {
+		/* first check if we have finished children */
+		while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+			printf("Process %d terminated with status %d\n", pid, status);
+		}
 		printf("# ");
 		len = gets_l(cmd_buf_in, CMD_BUF_SIZE);
 		if (len <= 0)

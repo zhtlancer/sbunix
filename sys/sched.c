@@ -525,6 +525,17 @@ pid_t waitpid(pid_t pid, int *status, int options)
 	task->waitpid = 1;
 	sleep(&task->waitpid);
 
+	if (task->state == TASK_ZOMBIE) {
+		/* Get child's status, see exit */
+		*status = task->tf->rax;
+		pid = task->pid;
+
+		/* Now free child task and release resource */
+		free_task(task);
+	} else {
+		sched_error("Child not exit? Why I'm waken up? (%d)\n", task->state);
+	}
+
 	return pid;
 }
 

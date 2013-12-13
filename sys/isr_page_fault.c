@@ -29,23 +29,22 @@ void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 	pf_db("Page fault at %p, ec %x\n", cr2, ec);
 
 	/* Non-existing mapping */
-	if (!(ec & PF_EC_P)) {
+	if (!(ec & PF_EC_P) && current != NULL) {
 		if ((cr2 < USTACK_TOP) && (cr2 >= USTACK_BOTTOM)) {
+			/* grow the user stack */
 			pf_error("Allocate memory for user stack region (%p)\n", cr2);
 			map_page_self(PGROUNDDOWN(cr2), 1, 0, PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
 			return;
-			/* TODO: grow the user stack? */
-		} else if (current != NULL) {
-			if ((cr2 >= current->mm->brk_start) && (cr2 < current->mm->brk_end)) {
-				pf_error("Allocate memory for brk region (%p)\n", cr2);
-				map_page_self(PGROUNDDOWN(cr2), 1, 0, PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
-				return;
-			}
+		} else if ((cr2 >= current->mm->brk_start) && (cr2 < current->mm->brk_end)) {
+			/* map brk region for user process */
+			pf_error("Allocate memory for brk region (%p)\n", cr2);
+			map_page_self(PGROUNDDOWN(cr2), 1, 0, PG_USR, 0, 0, 0, PGT_RW | PGT_USR);
+			return;
 		}
 	}
 
 	/* caused by mem write, COW page? */
-	if (ec & PF_EC_RW) {
+	if ((ec & PF_EC_P) && (ec & PF_EC_RW)) {
 		pgt_t *pgt = get_pgt_entry_lv4_self(cr2);
 		if ((pgt->avl_1 & PGT_AVL_COW) && (pgt->flag & PGT_USR) && !(pgt->flag & PGT_RW)) {
 			page_t *page = get_page_from_pgt(pgt);
@@ -69,7 +68,9 @@ void isr_page_fault(uint64_t ec, struct pt_regs *regs)
 	}
 
 	/* Exit execution */
-	if (current->state == TASK_RUNNING)
+	if (current != NULL) {
+		pf_error("SEGV at %p on process %d, killing it..\n", (void *)cr2, current->pid);
 		exit(-1);
+	}
 }
 /* vim: set ts=4 sw=0 tw=0 noet : */

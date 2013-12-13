@@ -558,6 +558,7 @@ void exit(int status)
 	}
 
 	/* free process' cwd */
+	put_inode(current->cwd);
 
 	/* wakeup parent if they are wating */
 	/* first check waitpid */

@@ -125,7 +125,7 @@ static struct inode *lookup_root(struct inode *parent, const char *path)
 	int len = parse_name(path);
 
 	if (len == 0)
-		return NULL;
+		return parent;
 
 	/* dispatch diskfs */
 	if (strcmp(_name_buf, DMOUNT) == 0) {
@@ -151,7 +151,7 @@ struct inode *path_lookup(struct inode *parent, const char *path)
 		parent = get_inode(rootfs);
 	}
 
-	/* If parent not provided, start from rootfs */
+	/* If parent not provided, return NULL */
 	if (parent == NULL) {
 		return NULL;
 	}

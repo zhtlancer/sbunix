@@ -164,9 +164,8 @@ int fd_close(int fd)
 		return -1;
 
 	file = current->files[fd];
-	if (file->f_ops->close) {
-		file->f_ops->close(file);
-	}
+	put_file(file);
+	current->files[fd] = NULL;
 
 	return rval;
 }
@@ -299,7 +298,7 @@ int munmap(void *addr, size_t length)
 			inode->fs_ops->write(inode, (void *)va, vma_tmp->ofs+(va - vma_tmp->vm_start), size);
 		}
 	}
-	
+
 	vma_delete(vma_tmp);
 	return 0;
 }

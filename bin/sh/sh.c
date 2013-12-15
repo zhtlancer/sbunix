@@ -182,6 +182,7 @@ static int run_ext_cmd(int bg, int argc, char *argv[])
 	int rval = -1;
 
 	if (argv[0][0] == '/') {
+		strlcpy(cmd_buf_in, argv[0], CMD_BUF_SIZE);
 		fd = open(cmd_buf_in, 0, 0);
 		if (fd < 0)
 			return fd;
